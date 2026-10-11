@@ -1,25 +1,29 @@
 from datetime import datetime, date, timedelta
 import calendar
 
-def month_ranges(start_date: date, end_date: date) -> dict[str, tuple[date, date]]:
+def month_ranges(start_date: date, end_date: date) -> list[dict[str, str | date]]:
     """Split the period start_date..end_date (inclusive) into calendar months.
 
-    Returns a dict keyed by "YYYY-MM" strings, in chronological order. Each value
-    is a (first_day, last_day) tuple of datetime.date objects. The first month
-    starts at start_date and the last month ends at end_date; every other month
-    covers the full calendar month.
+    Returns a list in chronological order with one dict per month. Each dict has
+    the keys "label" (a "YYYY-MM" string), "start_date" and "end_date" (both
+    datetime.date objects). The first month starts at start_date and the last
+    month ends at end_date; every other month covers the full calendar month.
     """
     if start_date > end_date:
         raise ValueError("start_date must not be after end_date")
 
-    result = {}
+    result = []
     year, month = start_date.year, start_date.month
 
     while (year, month) <= (end_date.year, end_date.month):
         first = date(year, month, 1)
         last = date(year, month, calendar.monthrange(year, month)[1])
 
-        result[f"{year}-{month:02d}"] = (max(first, start_date), min(last, end_date))
+        result.append({
+            "label": f"{year}-{month:02d}",
+            "start_date": max(first, start_date),
+            "end_date": min(last, end_date),
+        })
 
         month += 1
         if month > 12:

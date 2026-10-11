@@ -25,8 +25,11 @@ def main():
                       "start_state_of_charge",
                       "end_state_of_charge"]
 
-    chunk_dates = month_ranges(start_date, end_date)
-    for chunk_label, (chunk_start_date, chunk_end_date) in chunk_dates.items():
+    chunks = month_ranges(start_date, end_date)
+    for chunk in chunks:
+        chunk_label = chunk["label"]
+        chunk_start_date = chunk["start_date"]
+        chunk_end_date = chunk["end_date"]
         try:
             dayahead_sql = f"""
                 SELECT "{'", "'.join(dayahead_columns)}" FROM "{dayahead_resource_id}"
