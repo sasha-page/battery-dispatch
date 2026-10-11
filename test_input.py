@@ -67,17 +67,29 @@ class TestMonthRanges:
 
     class TestStartOnLastDayOfMonth:
         def test_returns_first_entry_single_day_when_start_on_last_day_and_end_mid_month(self):
-            pass
+            assert month_ranges(d(2024, 3, 31), d(2024, 5, 15)) == [
+                month("2024-03", d(2024, 3, 31), d(2024, 3, 31)),
+                month("2024-04", d(2024, 4, 1), d(2024, 4, 30)),
+                month("2024-05", d(2024, 5, 1), d(2024, 5, 15)),
+            ]
 
         def test_returns_single_day_entry_when_start_equals_end_on_last_day(self):
-            pass
+            assert month_ranges(d(2024, 6, 30), d(2024, 6, 30)) == [
+                month("2024-06", d(2024, 6, 30), d(2024, 6, 30)),
+            ]
 
     class TestEndOnFirstDayOfMonth:
         def test_returns_last_entry_single_day_when_start_mid_month_and_end_on_first_day(self):
-            pass
+            assert month_ranges(d(2024, 3, 10), d(2024, 5, 1)) == [
+                month("2024-03", d(2024, 3, 10), d(2024, 3, 31)),
+                month("2024-04", d(2024, 4, 1), d(2024, 4, 30)),
+                month("2024-05", d(2024, 5, 1), d(2024, 5, 1)),
+            ]
 
         def test_returns_single_day_entry_when_start_equals_end_on_first_day(self):
-            pass
+            assert month_ranges(d(2024, 7, 1), d(2024, 7, 1)) == [
+                month("2024-07", d(2024, 7, 1), d(2024, 7, 1)),
+            ]
 
     class TestStartOnLastDayOfMonthAndEndOnFirstDayOfMonth:
         def test_returns_two_single_day_entries_when_start_on_last_day_and_end_on_first_day_one_day_later(self):
