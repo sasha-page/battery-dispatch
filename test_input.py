@@ -1,6 +1,6 @@
 import datetime
 import pytest
-from data_streaming import month_ranges
+from input import month_ranges
 
 d = datetime.date
 
