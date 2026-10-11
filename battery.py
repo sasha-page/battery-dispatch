@@ -7,7 +7,7 @@ class Battery:
 
     def check_initial_state_of_charge(self):
         if self.initial_state_of_charge < 0 or self.initial_state_of_charge > 1:
-            raise ValueError("Initial state of charge must be between 0 and 1.")
+            raise ValueError("Initial state of charge must be between 0 and 1")
 
 class ThresholdBattery(Battery):
     # Dispatches if price is above or below fixed thresholds
@@ -22,7 +22,7 @@ class ThresholdBattery(Battery):
 
     def check_threshold(self):
         if self.upper_threshold <= self.lower_threshold:
-            raise ValueError("Upper threshold is at most lower threshold.")
+            raise ValueError("Upper threshold must be strictly greater than lower threshold")
 
     def dispatch(self, price: float) -> float:
         energy_to_dispatch = 0
