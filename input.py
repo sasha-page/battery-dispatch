@@ -44,13 +44,22 @@ def clean_dayahead_price_row(row: dict[str, str]) -> dict[str, datetime | float]
     datetime.datetime objects combining the date with the start and end of the
     delivery period) and "price" (a float). An end time of "00:00" is taken as
     midnight at the end of the day, so "end_date" falls on the following day.
+
+    Raises ValueError if the start time is not strictly before the end time,
+    which includes the ambiguous period "00:00 - 00:00".
     """
     row_date = datetime.strptime(row["Date"], '%Y-%m-%d')
     times = row["Delivery Period"].split(' - ')
+    if len(times) != 2:
+        raise ValueError("Delivery Period must contain exactly a start time and an end time")
     times = [datetime.strptime(row_time, '%H:%M').time() for row_time in times]
     timedeltas = [timedelta(hours=row_time.hour, minutes=row_time.minute) for row_time in times]
+    if timedeltas[0] == timedeltas[1]:
+        raise ValueError("Delivery Period start time must not equal end time")
     if timedeltas[1] == timedelta(0):
         timedeltas[1] = timedelta(hours=24)
+    if timedeltas[0] > timedeltas[1]:
+        raise ValueError("Delivery Period start time must not be after end time")
     dates = [row_date + row_timedelta for row_timedelta in timedeltas]
     price = float(row['Price'])
     return {"start_date": dates[0], "end_date": dates[1], "price": price}
