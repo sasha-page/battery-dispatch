@@ -13,8 +13,13 @@ class TestBattery:
         with pytest.raises(TypeError):
             Battery()
 
+    def test_raises_attribute_error_when_current_state_of_charge_assigned(self):
+        battery = ConcreteBattery(initial_state_of_charge=0.5)
+        with pytest.raises(AttributeError):
+            battery.current_state_of_charge = 1
 
-class TestCheckInitialStateOfCharge:
+
+class TestInitialStateOfCharge:
     def test_raises_value_error_when_below_zero(self):
         with pytest.raises(ValueError):
             ConcreteBattery(initial_state_of_charge=-0.1)
@@ -27,20 +32,20 @@ class TestCheckInitialStateOfCharge:
         with pytest.raises(ValueError):
             ConcreteBattery(initial_state_of_charge=float("nan"))
 
-    def test_does_not_raise_when_exactly_zero(self):
+    def test_sets_current_state_of_charge_when_exactly_zero(self):
         battery = ConcreteBattery(initial_state_of_charge=0)
-        battery.check_initial_state_of_charge()
+        assert battery.current_state_of_charge == 0
 
-    def test_does_not_raise_when_exactly_one(self):
+    def test_sets_current_state_of_charge_when_exactly_one(self):
         battery = ConcreteBattery(initial_state_of_charge=1)
-        battery.check_initial_state_of_charge()
+        assert battery.current_state_of_charge == 1
 
-    def test_does_not_raise_when_between_zero_and_one(self):
+    def test_sets_current_state_of_charge_when_between_zero_and_one(self):
         battery = ConcreteBattery(initial_state_of_charge=0.5)
-        battery.check_initial_state_of_charge()
+        assert battery.current_state_of_charge == 0.5
 
 
-class TestCheckThreshold:
+class TestThreshold:
     def test_raises_value_error_when_upper_threshold_below_lower_threshold(self):
         with pytest.raises(ValueError):
             ThresholdBattery(lower_threshold=50, upper_threshold=40)
@@ -66,8 +71,7 @@ class TestCheckThreshold:
             ThresholdBattery(lower_threshold=lower_threshold, upper_threshold=upper_threshold)
 
     def test_does_not_raise_when_upper_threshold_above_lower_threshold(self):
-        battery = ThresholdBattery(lower_threshold=40, upper_threshold=50)
-        battery.check_threshold()
+        ThresholdBattery(lower_threshold=40, upper_threshold=50)
 
 
 class TestDispatch:
