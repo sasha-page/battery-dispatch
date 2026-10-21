@@ -1,8 +1,11 @@
+from abc import ABC, abstractmethod
 import math
 
 
-class Battery:
-    # Normalised so that energy storage between 0 and 1 and no limits on rate of dispatch
+class Battery(ABC):
+    """A generic battery object with a state of charge between 0 and 1 and no
+    limits on the rate of dispatch.
+    """
     def __init__(self, initial_state_of_charge: float = 0):
         self.initial_state_of_charge = initial_state_of_charge
         self.check_initial_state_of_charge()
@@ -14,8 +17,14 @@ class Battery:
         if self.initial_state_of_charge < 0 or self.initial_state_of_charge > 1:
             raise ValueError("Initial state of charge must be between 0 and 1")
 
+    @abstractmethod
+    def dispatch(self, price: float) -> float:
+        """Return the energy dispatched at this price (negative when charging)
+        and update the current state of charge.
+        """
+
 class ThresholdBattery(Battery):
-    # Dispatches if price is above or below fixed thresholds
+    """A battery that dispatches based on fixed price thresholds."""
     def __init__(self,
                  lower_threshold: float,
                  upper_threshold: float,

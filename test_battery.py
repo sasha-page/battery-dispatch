@@ -2,29 +2,41 @@ import pytest
 from battery import Battery, ThresholdBattery
 
 
+class ConcreteBattery(Battery):
+    """Minimal subclass so the abstract Battery checks can be tested."""
+    def dispatch(self, price: float) -> float:
+        return 0
+
+
+class TestBattery:
+    def test_raises_type_error_when_instantiated_directly(self):
+        with pytest.raises(TypeError):
+            Battery()
+
+
 class TestCheckInitialStateOfCharge:
     def test_raises_value_error_when_below_zero(self):
         with pytest.raises(ValueError):
-            Battery(initial_state_of_charge=-0.1)
+            ConcreteBattery(initial_state_of_charge=-0.1)
 
     def test_raises_value_error_when_above_one(self):
         with pytest.raises(ValueError):
-            Battery(initial_state_of_charge=1.1)
+            ConcreteBattery(initial_state_of_charge=1.1)
 
     def test_raises_value_error_when_nan(self):
         with pytest.raises(ValueError):
-            Battery(initial_state_of_charge=float("nan"))
+            ConcreteBattery(initial_state_of_charge=float("nan"))
 
     def test_does_not_raise_when_exactly_zero(self):
-        battery = Battery(initial_state_of_charge=0)
+        battery = ConcreteBattery(initial_state_of_charge=0)
         battery.check_initial_state_of_charge()
 
     def test_does_not_raise_when_exactly_one(self):
-        battery = Battery(initial_state_of_charge=1)
+        battery = ConcreteBattery(initial_state_of_charge=1)
         battery.check_initial_state_of_charge()
 
     def test_does_not_raise_when_between_zero_and_one(self):
-        battery = Battery(initial_state_of_charge=0.5)
+        battery = ConcreteBattery(initial_state_of_charge=0.5)
         battery.check_initial_state_of_charge()
 
 
