@@ -11,6 +11,10 @@ class TestCheckInitialStateOfCharge:
         with pytest.raises(ValueError):
             Battery(initial_state_of_charge=1.1)
 
+    def test_raises_value_error_when_nan(self):
+        with pytest.raises(ValueError):
+            Battery(initial_state_of_charge=float("nan"))
+
     def test_does_not_raise_when_exactly_zero(self):
         battery = Battery(initial_state_of_charge=0)
         battery.check_initial_state_of_charge()
@@ -32,6 +36,22 @@ class TestCheckThreshold:
     def test_raises_value_error_when_upper_threshold_equal_to_lower_threshold(self):
         with pytest.raises(ValueError):
             ThresholdBattery(lower_threshold=50, upper_threshold=50)
+
+    @pytest.mark.parametrize(
+        "lower_threshold, upper_threshold",
+        [
+            pytest.param(40, float("inf"), id="upper_inf"),
+            pytest.param(float("-inf"), 50, id="lower_negative_inf"),
+            pytest.param(40, float("nan"), id="upper_nan"),
+            pytest.param(float("nan"), 50, id="lower_nan"),
+            pytest.param(float("-inf"), float("nan"), id="lower_negative_inf_upper_nan"),
+            pytest.param(float("nan"), float("inf"), id="lower_nan_upper_inf"),
+            pytest.param(float("nan"), float("nan"), id="both_nan"),
+        ],
+    )
+    def test_raises_value_error_when_threshold_not_finite(self, lower_threshold: float, upper_threshold: float):
+        with pytest.raises(ValueError):
+            ThresholdBattery(lower_threshold=lower_threshold, upper_threshold=upper_threshold)
 
     def test_does_not_raise_when_upper_threshold_above_lower_threshold(self):
         battery = ThresholdBattery(lower_threshold=40, upper_threshold=50)

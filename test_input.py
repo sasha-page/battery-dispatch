@@ -263,3 +263,15 @@ class TestCleanDayaheadPriceRow:
         def test_raises_value_error_when_price_has_incorrect_format(self, price: str):
             with pytest.raises(ValueError):
                 clean_dayahead_price_row(raw_row(price=price))
+
+        @pytest.mark.parametrize(
+            "price",
+            [
+                pytest.param("inf", id="inf"),
+                pytest.param("-inf", id="negative_inf"),
+                pytest.param("nan", id="nan"),
+            ],
+        )
+        def test_raises_value_error_when_price_not_finite(self, price: str):
+            with pytest.raises(ValueError):
+                clean_dayahead_price_row(raw_row(price=price))
