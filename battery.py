@@ -1,3 +1,6 @@
+import math
+
+
 class Battery:
     # Normalised so that energy storage between 0 and 1 and no limits on rate of dispatch
     def __init__(self, initial_state_of_charge: float = 0):
@@ -6,6 +9,8 @@ class Battery:
         self.current_state_of_charge = self.initial_state_of_charge
 
     def check_initial_state_of_charge(self):
+        if math.isnan(self.initial_state_of_charge):
+            raise ValueError("Initial state of charge must not be nan")
         if self.initial_state_of_charge < 0 or self.initial_state_of_charge > 1:
             raise ValueError("Initial state of charge must be between 0 and 1")
 
@@ -21,6 +26,8 @@ class ThresholdBattery(Battery):
         self.check_threshold()
 
     def check_threshold(self):
+        if not (math.isfinite(self.lower_threshold) and math.isfinite(self.upper_threshold)):
+            raise ValueError("Thresholds must not be infinite or nan")
         if self.upper_threshold <= self.lower_threshold:
             raise ValueError("Upper threshold must be strictly greater than lower threshold")
 

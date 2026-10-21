@@ -1,5 +1,6 @@
 from datetime import datetime, date, timedelta
 import calendar
+import math
 
 def month_ranges(start_date: date, end_date: date) -> list[dict[str, str | date]]:
     """Split the period start_date..end_date (inclusive) into calendar months.
@@ -46,7 +47,8 @@ def clean_dayahead_price_row(row: dict[str, str]) -> dict[str, datetime | float]
     midnight at the end of the day, so "end_date" falls on the following day.
 
     Raises ValueError if the start time is not strictly before the end time,
-    which includes the ambiguous period "00:00 - 00:00".
+    which includes the ambiguous period "00:00 - 00:00", or if the price is
+    inf, -inf or nan.
     """
     row_date = datetime.strptime(row["Date"], '%Y-%m-%d')
     times = row["Delivery Period"].split(' - ')
@@ -62,4 +64,6 @@ def clean_dayahead_price_row(row: dict[str, str]) -> dict[str, datetime | float]
         raise ValueError("Delivery Period start time must not be after end time")
     dates = [row_date + row_timedelta for row_timedelta in timedeltas]
     price = float(row['Price'])
+    if not math.isfinite(price):
+        raise ValueError("Price must not be infinite or nan")
     return {"start_date": dates[0], "end_date": dates[1], "price": price}
