@@ -300,6 +300,10 @@ class TestCleanDayaheadPrices:
             )
 
     class TestInvalidInput:
+        def test_raises_value_error_when_no_rows(self):
+            with pytest.raises(ValueError):
+                clean_dayahead_prices([])
+
         @pytest.mark.parametrize("missing_key", ["Date", "Delivery Period", "Price"])
         def test_raises_key_error_when_required_key_missing(self, missing_key: str):
             row = raw_row("2024-04-22", "08:00 - 09:00", "23.45")
