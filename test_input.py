@@ -11,7 +11,7 @@ def month(label: str, start_date: datetime.date, end_date: datetime.date) -> dic
     return {"label": label, "start_date": start_date, "end_date": end_date}
 
 
-def raw_row(row_date: str = "2024-03-15", delivery_period: str = "13:00 - 14:00", price: str = "45.67") -> dict:
+def raw_row(row_date: str, delivery_period: str, price: str) -> dict:
     return {"Date": row_date, "Delivery Period": delivery_period, "Price": price}
 
 
@@ -281,16 +281,16 @@ class TestCleanDayaheadPrices:
         )
         def test_raises_value_error_when_start_not_strictly_before_end(self, delivery_period: str):
             with pytest.raises(ValueError):
-                clean_dayahead_prices([raw_row(delivery_period=delivery_period)])
+                clean_dayahead_prices([raw_row("2024-01-08", delivery_period, "12.34")])
 
         def test_raises_value_error_when_period_starts_and_ends_at_midnight(self):
             with pytest.raises(ValueError):
-                clean_dayahead_prices([raw_row(delivery_period="00:00 - 00:00")])
+                clean_dayahead_prices([raw_row("2024-02-19", "00:00 - 00:00", "56.78")])
 
     class TestInvalidInput:
         @pytest.mark.parametrize("missing_key", ["Date", "Delivery Period", "Price"])
         def test_raises_key_error_when_required_key_missing(self, missing_key: str):
-            row = raw_row()
+            row = raw_row("2024-04-22", "08:00 - 09:00", "23.45")
             del row[missing_key]
             with pytest.raises(KeyError):
                 clean_dayahead_prices([row])
@@ -307,9 +307,9 @@ class TestCleanDayaheadPrices:
         def test_raises_value_error_when_date_has_incorrect_format(self, row_date: str):
             with pytest.raises(ValueError):
                 clean_dayahead_prices([
-                    raw_row(row_date=row_date, delivery_period="12:00 - 13:00"),
-                    raw_row(row_date=row_date, delivery_period="13:00 - 14:00"),
-                    raw_row(row_date=row_date, delivery_period="14:00 - 15:00"),
+                    raw_row(row_date, "05:00 - 06:00", "31.2"),
+                    raw_row(row_date, "06:00 - 07:00", "33.8"),
+                    raw_row(row_date, "07:00 - 08:00", "36.1"),
                 ])
 
         @pytest.mark.parametrize(
@@ -327,9 +327,9 @@ class TestCleanDayaheadPrices:
         def test_raises_value_error_when_delivery_period_has_incorrect_format(self, delivery_period: str):
             with pytest.raises(ValueError):
                 clean_dayahead_prices([
-                    raw_row(delivery_period="12:00 - 13:00"),
-                    raw_row(delivery_period=delivery_period),
-                    raw_row(delivery_period="14:00 - 15:00"),
+                    raw_row("2024-05-27", "12:00 - 13:00", "48.9"),
+                    raw_row("2024-05-27", delivery_period, "51.3"),
+                    raw_row("2024-05-27", "14:00 - 15:00", "49.7"),
                 ])
 
         @pytest.mark.parametrize(
@@ -344,9 +344,9 @@ class TestCleanDayaheadPrices:
         def test_raises_value_error_when_price_has_incorrect_format(self, price: str):
             with pytest.raises(ValueError):
                 clean_dayahead_prices([
-                    raw_row(delivery_period="13:00 - 14:00", price=price),
-                    raw_row(delivery_period="14:00 - 15:00"),
-                    raw_row(delivery_period="15:00 - 16:00"),
+                    raw_row("2024-07-03", "17:00 - 18:00", price),
+                    raw_row("2024-07-03", "18:00 - 19:00", "88.25"),
+                    raw_row("2024-07-03", "19:00 - 20:00", "92.4"),
                 ])
 
         @pytest.mark.parametrize(
@@ -360,7 +360,7 @@ class TestCleanDayaheadPrices:
         def test_raises_value_error_when_price_not_finite(self, price: str):
             with pytest.raises(ValueError):
                 clean_dayahead_prices([
-                    raw_row(delivery_period="11:00 - 12:00"),
-                    raw_row(delivery_period="12:00 - 13:00"),
-                    raw_row(delivery_period="13:00 - 14:00", price=price),
+                    raw_row("2024-09-30", "20:00 - 21:00", "61.15"),
+                    raw_row("2024-09-30", "21:00 - 22:00", "57.6"),
+                    raw_row("2024-09-30", "22:00 - 23:00", price),
                 ])
