@@ -183,7 +183,7 @@ class TestMonthRanges:
 
 
 class TestCleanDayaheadPrices:
-    class TestDeliveryPeriodPosition:
+    class TestSingleRow:
         def test_returns_start_at_midnight_when_period_starts_at_beginning_of_day(self):
             pd.testing.assert_frame_equal(
                 clean_dayahead_prices([raw_row("2024-03-15", "00:00 - 01:00", "45.67")]),
@@ -200,6 +200,31 @@ class TestCleanDayaheadPrices:
             pd.testing.assert_frame_equal(
                 clean_dayahead_prices([raw_row("2024-03-15", "13:00 - 14:00", "45.67")]),
                 pd.DataFrame([clean_row(dt(2024, 3, 15, 13, 0), dt(2024, 3, 15, 14, 0), 45.67)]),
+            )
+
+    class TestMultipleRows:
+        def test_returns_cleaned_rows_when_rows_cover_whole_days_from_midnight_to_midnight(self):
+            pd.testing.assert_frame_equal(
+                clean_dayahead_prices([
+                    raw_row("2024-03-15", "00:00 - 06:00", "10.5"),
+                    raw_row("2024-03-15", "06:00 - 12:00", "20.5"),
+                    raw_row("2024-03-15", "12:00 - 18:00", "30.5"),
+                    raw_row("2024-03-15", "18:00 - 00:00", "40.5"),
+                    raw_row("2024-03-16", "00:00 - 06:00", "50.5"),
+                    raw_row("2024-03-16", "06:00 - 12:00", "60.5"),
+                    raw_row("2024-03-16", "12:00 - 18:00", "70.5"),
+                    raw_row("2024-03-16", "18:00 - 00:00", "80.5"),
+                ]),
+                pd.DataFrame([
+                    clean_row(dt(2024, 3, 15, 0, 0), dt(2024, 3, 15, 6, 0), 10.5),
+                    clean_row(dt(2024, 3, 15, 6, 0), dt(2024, 3, 15, 12, 0), 20.5),
+                    clean_row(dt(2024, 3, 15, 12, 0), dt(2024, 3, 15, 18, 0), 30.5),
+                    clean_row(dt(2024, 3, 15, 18, 0), dt(2024, 3, 16, 0, 0), 40.5),
+                    clean_row(dt(2024, 3, 16, 0, 0), dt(2024, 3, 16, 6, 0), 50.5),
+                    clean_row(dt(2024, 3, 16, 6, 0), dt(2024, 3, 16, 12, 0), 60.5),
+                    clean_row(dt(2024, 3, 16, 12, 0), dt(2024, 3, 16, 18, 0), 70.5),
+                    clean_row(dt(2024, 3, 16, 18, 0), dt(2024, 3, 17, 0, 0), 80.5),
+                ]),
             )
 
     class TestStartBeforeEnd:
