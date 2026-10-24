@@ -50,7 +50,9 @@ def clean_dayahead_prices(rows: list[dict[str, str]]) -> pd.DataFrame:
 
     Raises ValueError if rows is empty, if the start time is not strictly
     before the end time, which includes the ambiguous period "00:00 - 00:00",
-    or if the price is inf, -inf or nan.
+    if the price is inf, -inf or nan, if a row does not start where the
+    previous row ends, or if the rows do not all cover periods of the same
+    length.
     """
     if not rows:
         raise ValueError("Rows must not be empty")
@@ -73,4 +75,9 @@ def clean_dayahead_prices(rows: list[dict[str, str]]) -> pd.DataFrame:
         if not math.isfinite(price):
             raise ValueError("Price must not be infinite or nan")
         cleaned_rows.append({"start_date": dates[0], "end_date": dates[1], "price": price})
+    for previous_row, current_row in zip(cleaned_rows, cleaned_rows[1:]):
+        if current_row["start_date"] != previous_row["end_date"]:
+            raise ValueError("Each row must start where the previous row ends")
+        if current_row["end_date"] - current_row["start_date"] != previous_row["end_date"] - previous_row["start_date"]:
+            raise ValueError("All rows must cover periods of the same length")
     return pd.DataFrame(cleaned_rows)
