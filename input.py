@@ -48,10 +48,12 @@ def clean_dayahead_prices(rows: list[dict[str, str]]) -> pd.DataFrame:
     of "00:00" is taken as midnight at the end of the day, so "end_date" falls
     on the following day.
 
-    Raises ValueError if the start time is not strictly before the end time,
-    which includes the ambiguous period "00:00 - 00:00", or if the price is
-    inf, -inf or nan.
+    Raises ValueError if rows is empty, if the start time is not strictly
+    before the end time, which includes the ambiguous period "00:00 - 00:00",
+    or if the price is inf, -inf or nan.
     """
+    if not rows:
+        raise ValueError("Rows must not be empty")
     cleaned_rows = []
     for row in rows:
         row_date = datetime.strptime(row["Date"], '%Y-%m-%d')
