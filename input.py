@@ -1,6 +1,7 @@
 from datetime import datetime, date, timedelta
 import calendar
 import math
+import pandas as pd
 
 def month_ranges(start_date: date, end_date: date) -> list[dict[str, str | date]]:
     """Split the period start_date..end_date (inclusive) into calendar months.
@@ -34,22 +35,23 @@ def month_ranges(start_date: date, end_date: date) -> list[dict[str, str | date]
     return result
 
 
-def clean_dayahead_prices(row: dict[str, str]) -> dict[str, datetime | float]:
-    """Convert a raw day-ahead price row into typed values.
+def clean_dayahead_prices(rows: list[dict[str, str]]) -> pd.DataFrame:
+    """Convert raw day-ahead price rows into typed values.
 
-    The row must have the keys "Date" (a "YYYY-MM-DD" string), "Delivery Period"
-    (start and end times in the form "13:00 - 14:00") and "Price" (a number
-    stored as a string).
+    Only the first row in the list is cleaned for now. The row must have the
+    keys "Date" (a "YYYY-MM-DD" string), "Delivery Period" (start and end times
+    in the form "13:00 - 14:00") and "Price" (a number stored as a string).
 
-    Returns a dict with the keys "start_date" and "end_date" (both
-    datetime.datetime objects combining the date with the start and end of the
-    delivery period) and "price" (a float). An end time of "00:00" is taken as
-    midnight at the end of the day, so "end_date" falls on the following day.
+    Returns a one-row DataFrame with the columns "start_date" and "end_date"
+    (both datetimes combining the date with the start and end of the delivery
+    period) and "price" (a float). An end time of "00:00" is taken as midnight
+    at the end of the day, so "end_date" falls on the following day.
 
     Raises ValueError if the start time is not strictly before the end time,
     which includes the ambiguous period "00:00 - 00:00", or if the price is
     inf, -inf or nan.
     """
+    row = rows[0]
     row_date = datetime.strptime(row["Date"], '%Y-%m-%d')
     times = row["Delivery Period"].split(' - ')
     if len(times) != 2:
@@ -66,4 +68,4 @@ def clean_dayahead_prices(row: dict[str, str]) -> dict[str, datetime | float]:
     price = float(row['Price'])
     if not math.isfinite(price):
         raise ValueError("Price must not be infinite or nan")
-    return {"start_date": dates[0], "end_date": dates[1], "price": price}
+    return pd.DataFrame([{"start_date": dates[0], "end_date": dates[1], "price": price}])
