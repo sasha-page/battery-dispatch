@@ -42,11 +42,11 @@ def clean_dayahead_prices(rows: list[dict[str, str]]) -> pd.DataFrame:
     Period" (start and end times in the form "13:00 - 14:00") and "Price" (a
     number stored as a string).
 
-    Returns a DataFrame with one row per input row, in the same order, and the
-    columns "start_date" and "end_date" (both datetimes combining the date with
-    the start and end of the delivery period) and "price" (a float). An end time
-    of "00:00" is taken as midnight at the end of the day, so "end_date" falls
-    on the following day.
+    Returns a DataFrame with one row per input row, sorted by "start_date", and
+    the columns "start_date" and "end_date" (both datetimes combining the date
+    with the start and end of the delivery period) and "price" (a float). An end
+    time of "00:00" is taken as midnight at the end of the day, so "end_date"
+    falls on the following day.
 
     Raises ValueError if rows is empty, if the start time is not strictly
     before the end time, which includes the ambiguous period "00:00 - 00:00",
@@ -75,6 +75,7 @@ def clean_dayahead_prices(rows: list[dict[str, str]]) -> pd.DataFrame:
         if not math.isfinite(price):
             raise ValueError("Price must not be infinite or nan")
         cleaned_rows.append({"start_date": dates[0], "end_date": dates[1], "price": price})
+    cleaned_rows.sort(key=lambda cleaned_row: cleaned_row["start_date"])
     for previous_row, current_row in zip(cleaned_rows, cleaned_rows[1:]):
         if current_row["start_date"] != previous_row["end_date"]:
             raise ValueError("Each row must start where the previous row ends")
