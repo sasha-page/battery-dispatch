@@ -286,6 +286,22 @@ class TestCleanDayaheadPrices:
                 ]),
             )
 
+        def test_returns_cleaned_rows_sorted_by_start_when_rows_out_of_order(self):
+            pd.testing.assert_frame_equal(
+                clean_dayahead_prices([
+                    raw_row("2025-01-01", "00:00 - 06:00", "84.6"),
+                    raw_row("2024-12-31", "12:00 - 18:00", "95.15"),
+                    raw_row("2025-01-01", "06:00 - 12:00", "78.3"),
+                    raw_row("2024-12-31", "18:00 - 00:00", "102.4"),
+                ]),
+                pd.DataFrame([
+                    clean_row(dt(2024, 12, 31, 12, 0), dt(2024, 12, 31, 18, 0), 95.15),
+                    clean_row(dt(2024, 12, 31, 18, 0), dt(2025, 1, 1, 0, 0), 102.4),
+                    clean_row(dt(2025, 1, 1, 0, 0), dt(2025, 1, 1, 6, 0), 84.6),
+                    clean_row(dt(2025, 1, 1, 6, 0), dt(2025, 1, 1, 12, 0), 78.3),
+                ]),
+            )
+
     class TestExtraKeys:
         def test_ignores_keys_other_than_required_keys(self):
             pd.testing.assert_frame_equal(
