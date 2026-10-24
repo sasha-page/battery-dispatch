@@ -306,7 +306,11 @@ class TestCleanDayaheadPrices:
         )
         def test_raises_value_error_when_date_has_incorrect_format(self, row_date: str):
             with pytest.raises(ValueError):
-                clean_dayahead_prices([raw_row(row_date=row_date)])
+                clean_dayahead_prices([
+                    raw_row(row_date=row_date, delivery_period="12:00 - 13:00"),
+                    raw_row(row_date=row_date, delivery_period="13:00 - 14:00"),
+                    raw_row(row_date=row_date, delivery_period="14:00 - 15:00"),
+                ])
 
         @pytest.mark.parametrize(
             "delivery_period",
@@ -322,7 +326,11 @@ class TestCleanDayaheadPrices:
         )
         def test_raises_value_error_when_delivery_period_has_incorrect_format(self, delivery_period: str):
             with pytest.raises(ValueError):
-                clean_dayahead_prices([raw_row(delivery_period=delivery_period)])
+                clean_dayahead_prices([
+                    raw_row(delivery_period="12:00 - 13:00"),
+                    raw_row(delivery_period=delivery_period),
+                    raw_row(delivery_period="14:00 - 15:00"),
+                ])
 
         @pytest.mark.parametrize(
             "price",
@@ -335,7 +343,11 @@ class TestCleanDayaheadPrices:
         )
         def test_raises_value_error_when_price_has_incorrect_format(self, price: str):
             with pytest.raises(ValueError):
-                clean_dayahead_prices([raw_row(price=price)])
+                clean_dayahead_prices([
+                    raw_row(delivery_period="13:00 - 14:00", price=price),
+                    raw_row(delivery_period="14:00 - 15:00"),
+                    raw_row(delivery_period="15:00 - 16:00"),
+                ])
 
         @pytest.mark.parametrize(
             "price",
@@ -347,4 +359,8 @@ class TestCleanDayaheadPrices:
         )
         def test_raises_value_error_when_price_not_finite(self, price: str):
             with pytest.raises(ValueError):
-                clean_dayahead_prices([raw_row(price=price)])
+                clean_dayahead_prices([
+                    raw_row(delivery_period="11:00 - 12:00"),
+                    raw_row(delivery_period="12:00 - 13:00"),
+                    raw_row(delivery_period="13:00 - 14:00", price=price),
+                ])
