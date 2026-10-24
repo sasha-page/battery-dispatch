@@ -299,6 +299,63 @@ class TestCleanDayaheadPrices:
                 ]),
             )
 
+    class TestStartEqualToPreviousEnd:
+        def test_raises_value_error_when_gap_between_rows(self):
+            with pytest.raises(ValueError):
+                clean_dayahead_prices([
+                    raw_row("2024-06-10", "00:00 - 00:30", "41.2"),
+                    raw_row("2024-06-10", "01:00 - 01:30", "39.75"),
+                    raw_row("2024-06-10", "02:00 - 02:30", "38.6"),
+                ])
+
+        def test_raises_value_error_when_rows_overlap(self):
+            with pytest.raises(ValueError):
+                clean_dayahead_prices([
+                    raw_row("2024-06-10", "03:00 - 04:00", "37.9"),
+                    raw_row("2024-06-10", "03:30 - 04:30", "36.45"),
+                    raw_row("2024-06-10", "04:30 - 05:30", "35.8"),
+                ])
+
+        def test_raises_value_error_when_rows_duplicated(self):
+            with pytest.raises(ValueError):
+                clean_dayahead_prices([
+                    raw_row("2024-06-10", "10:00 - 11:00", "63.4"),
+                    raw_row("2024-06-10", "10:00 - 11:00", "63.4"),
+                    raw_row("2024-06-10", "11:00 - 12:00", "61.95"),
+                ])
+
+    class TestRowsHaveSameLength:
+        def test_raises_value_error_when_first_row_longer(self):
+            with pytest.raises(ValueError):
+                clean_dayahead_prices([
+                    raw_row("2024-08-14", "00:00 - 02:00", "29.4"),
+                    raw_row("2024-08-14", "02:00 - 03:00", "27.85"),
+                    raw_row("2024-08-14", "03:00 - 04:00", "26.3"),
+                ])
+
+        def test_raises_value_error_when_middle_row_longer(self):
+            with pytest.raises(ValueError):
+                clean_dayahead_prices([
+                    raw_row("2024-08-14", "05:00 - 06:00", "33.1"),
+                    raw_row("2024-08-14", "06:00 - 08:00", "44.65"),
+                    raw_row("2024-08-14", "08:00 - 09:00", "55.2"),
+                ])
+
+        def test_raises_value_error_when_last_row_longer(self):
+            with pytest.raises(ValueError):
+                clean_dayahead_prices([
+                    raw_row("2024-08-14", "10:00 - 11:00", "66.75"),
+                    raw_row("2024-08-14", "11:00 - 12:00", "64.3"),
+                    raw_row("2024-08-14", "12:00 - 14:00", "59.9"),
+                ])
+
+        def test_raises_value_error_when_only_two_rows(self):
+            with pytest.raises(ValueError):
+                clean_dayahead_prices([
+                    raw_row("2024-08-14", "15:00 - 16:00", "57.45"),
+                    raw_row("2024-08-14", "16:00 - 18:00", "71.8"),
+                ])
+
     class TestInvalidInput:
         def test_raises_value_error_when_no_rows(self):
             with pytest.raises(ValueError):
