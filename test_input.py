@@ -202,6 +202,21 @@ class TestCleanDayaheadPrices:
                 pd.DataFrame([clean_row(dt(2024, 3, 15, 13, 0), dt(2024, 3, 15, 14, 0), 45.67)]),
             )
 
+        @pytest.mark.parametrize(
+            "delivery_period",
+            [
+                pytest.param("14:00 - 13:00", id="start_after_end"),
+                pytest.param("13:00 - 13:00", id="start_equals_end"),
+            ],
+        )
+        def test_raises_value_error_when_start_not_strictly_before_end(self, delivery_period: str):
+            with pytest.raises(ValueError):
+                clean_dayahead_prices([raw_row("2024-01-08", delivery_period, "12.34")])
+
+        def test_raises_value_error_when_period_starts_and_ends_at_midnight(self):
+            with pytest.raises(ValueError):
+                clean_dayahead_prices([raw_row("2024-02-19", "00:00 - 00:00", "56.78")])
+
     class TestMultipleRows:
         def test_returns_cleaned_rows_when_start_at_midnight_and_end_at_midnight(self):
             pd.testing.assert_frame_equal(
@@ -283,22 +298,6 @@ class TestCleanDayaheadPrices:
                     clean_row(dt(2024, 11, 11, 10, 0), dt(2024, 11, 11, 11, 0), 71.85),
                 ]),
             )
-
-    class TestStartBeforeEnd:
-        @pytest.mark.parametrize(
-            "delivery_period",
-            [
-                pytest.param("14:00 - 13:00", id="start_after_end"),
-                pytest.param("13:00 - 13:00", id="start_equals_end"),
-            ],
-        )
-        def test_raises_value_error_when_start_not_strictly_before_end(self, delivery_period: str):
-            with pytest.raises(ValueError):
-                clean_dayahead_prices([raw_row("2024-01-08", delivery_period, "12.34")])
-
-        def test_raises_value_error_when_period_starts_and_ends_at_midnight(self):
-            with pytest.raises(ValueError):
-                clean_dayahead_prices([raw_row("2024-02-19", "00:00 - 00:00", "56.78")])
 
     class TestInvalidInput:
         @pytest.mark.parametrize("missing_key", ["Date", "Delivery Period", "Price"])
