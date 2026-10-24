@@ -271,6 +271,19 @@ class TestCleanDayaheadPrices:
                 ]),
             )
 
+    class TestExtraKeys:
+        def test_ignores_keys_other_than_required_keys(self):
+            pd.testing.assert_frame_equal(
+                clean_dayahead_prices([
+                    {"Date": "2024-11-11", "Delivery Period": "09:00 - 10:00", "Price": "74.2", "_id": "1", "Currency": "GBP"},
+                    {"Date": "2024-11-11", "Delivery Period": "10:00 - 11:00", "Price": "71.85", "_id": "2", "Currency": "GBP"},
+                ]),
+                pd.DataFrame([
+                    clean_row(dt(2024, 11, 11, 9, 0), dt(2024, 11, 11, 10, 0), 74.2),
+                    clean_row(dt(2024, 11, 11, 10, 0), dt(2024, 11, 11, 11, 0), 71.85),
+                ]),
+            )
+
     class TestStartBeforeEnd:
         @pytest.mark.parametrize(
             "delivery_period",
