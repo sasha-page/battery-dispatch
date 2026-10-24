@@ -34,7 +34,7 @@ def month_ranges(start_date: date, end_date: date) -> list[dict[str, str | date]
     return result
 
 
-def clean_dayahead_price_row(row: dict[str, str]) -> dict[str, datetime | float]:
+def clean_dayahead_prices(row: dict[str, str]) -> dict[str, datetime | float]:
     """Convert a raw day-ahead price row into typed values.
 
     The row must have the keys "Date" (a "YYYY-MM-DD" string), "Delivery Period"

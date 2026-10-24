@@ -1,6 +1,6 @@
 import datetime
 import pytest
-from input import month_ranges, clean_dayahead_price_row
+from input import month_ranges, clean_dayahead_prices
 
 d = datetime.date
 dt = datetime.datetime
@@ -181,20 +181,20 @@ class TestMonthRanges:
                 month_ranges(start_date, end_date)
 
 
-class TestCleanDayaheadPriceRow:
+class TestCleanDayaheadPrices:
     class TestDeliveryPeriodPosition:
         def test_returns_start_at_midnight_when_period_starts_at_beginning_of_day(self):
-            assert clean_dayahead_price_row(raw_row("2024-03-15", "00:00 - 01:00", "45.67")) == clean_row(
+            assert clean_dayahead_prices(raw_row("2024-03-15", "00:00 - 01:00", "45.67")) == clean_row(
                 dt(2024, 3, 15, 0, 0), dt(2024, 3, 15, 1, 0), 45.67,
             )
 
         def test_returns_end_at_midnight_of_following_day_when_period_ends_at_end_of_day(self):
-            assert clean_dayahead_price_row(raw_row("2024-03-15", "23:00 - 00:00", "45.67")) == clean_row(
+            assert clean_dayahead_prices(raw_row("2024-03-15", "23:00 - 00:00", "45.67")) == clean_row(
                 dt(2024, 3, 15, 23, 0), dt(2024, 3, 16, 0, 0), 45.67,
             )
 
         def test_returns_start_and_end_on_same_day_when_period_starts_and_ends_mid_day(self):
-            assert clean_dayahead_price_row(raw_row("2024-03-15", "13:00 - 14:00", "45.67")) == clean_row(
+            assert clean_dayahead_prices(raw_row("2024-03-15", "13:00 - 14:00", "45.67")) == clean_row(
                 dt(2024, 3, 15, 13, 0), dt(2024, 3, 15, 14, 0), 45.67,
             )
 
@@ -208,11 +208,11 @@ class TestCleanDayaheadPriceRow:
         )
         def test_raises_value_error_when_start_not_strictly_before_end(self, delivery_period: str):
             with pytest.raises(ValueError):
-                clean_dayahead_price_row(raw_row(delivery_period=delivery_period))
+                clean_dayahead_prices(raw_row(delivery_period=delivery_period))
 
         def test_raises_value_error_when_period_starts_and_ends_at_midnight(self):
             with pytest.raises(ValueError):
-                clean_dayahead_price_row(raw_row(delivery_period="00:00 - 00:00"))
+                clean_dayahead_prices(raw_row(delivery_period="00:00 - 00:00"))
 
     class TestInvalidInput:
         @pytest.mark.parametrize("missing_key", ["Date", "Delivery Period", "Price"])
@@ -220,7 +220,7 @@ class TestCleanDayaheadPriceRow:
             row = raw_row()
             del row[missing_key]
             with pytest.raises(KeyError):
-                clean_dayahead_price_row(row)
+                clean_dayahead_prices(row)
 
         @pytest.mark.parametrize(
             "row_date",
@@ -233,7 +233,7 @@ class TestCleanDayaheadPriceRow:
         )
         def test_raises_value_error_when_date_has_incorrect_format(self, row_date: str):
             with pytest.raises(ValueError):
-                clean_dayahead_price_row(raw_row(row_date=row_date))
+                clean_dayahead_prices(raw_row(row_date=row_date))
 
         @pytest.mark.parametrize(
             "delivery_period",
@@ -249,7 +249,7 @@ class TestCleanDayaheadPriceRow:
         )
         def test_raises_value_error_when_delivery_period_has_incorrect_format(self, delivery_period: str):
             with pytest.raises(ValueError):
-                clean_dayahead_price_row(raw_row(delivery_period=delivery_period))
+                clean_dayahead_prices(raw_row(delivery_period=delivery_period))
 
         @pytest.mark.parametrize(
             "price",
@@ -262,7 +262,7 @@ class TestCleanDayaheadPriceRow:
         )
         def test_raises_value_error_when_price_has_incorrect_format(self, price: str):
             with pytest.raises(ValueError):
-                clean_dayahead_price_row(raw_row(price=price))
+                clean_dayahead_prices(raw_row(price=price))
 
         @pytest.mark.parametrize(
             "price",
@@ -274,4 +274,4 @@ class TestCleanDayaheadPriceRow:
         )
         def test_raises_value_error_when_price_not_finite(self, price: str):
             with pytest.raises(ValueError):
-                clean_dayahead_price_row(raw_row(price=price))
+                clean_dayahead_prices(raw_row(price=price))

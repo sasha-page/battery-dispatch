@@ -3,7 +3,7 @@ from datetime import datetime, date
 import csv
 import requests
 import pandas as pd
-from input import month_ranges, clean_dayahead_price_row
+from input import month_ranges, clean_dayahead_prices
 from battery import ThresholdBattery
 
 def main():
@@ -48,7 +48,7 @@ def main():
         output_writer = csv.writer(output_file)
         output_writer.writerow(output_columns)
         for row in dayahead_rows:
-            row_data = clean_dayahead_price_row(row)
+            row_data = clean_dayahead_prices(row)
             row_data["start_state_of_charge"] = battery.current_state_of_charge
             row_data["energy_dispatched"] = battery.dispatch(row_data["price"])
             row_data["end_state_of_charge"] = battery.current_state_of_charge
