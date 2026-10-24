@@ -38,34 +38,37 @@ def month_ranges(start_date: date, end_date: date) -> list[dict[str, str | date]
 def clean_dayahead_prices(rows: list[dict[str, str]]) -> pd.DataFrame:
     """Convert raw day-ahead price rows into typed values.
 
-    Only the first row in the list is cleaned for now. The row must have the
-    keys "Date" (a "YYYY-MM-DD" string), "Delivery Period" (start and end times
-    in the form "13:00 - 14:00") and "Price" (a number stored as a string).
+    Each row must have the keys "Date" (a "YYYY-MM-DD" string), "Delivery
+    Period" (start and end times in the form "13:00 - 14:00") and "Price" (a
+    number stored as a string).
 
-    Returns a one-row DataFrame with the columns "start_date" and "end_date"
-    (both datetimes combining the date with the start and end of the delivery
-    period) and "price" (a float). An end time of "00:00" is taken as midnight
-    at the end of the day, so "end_date" falls on the following day.
+    Returns a DataFrame with one row per input row, in the same order, and the
+    columns "start_date" and "end_date" (both datetimes combining the date with
+    the start and end of the delivery period) and "price" (a float). An end time
+    of "00:00" is taken as midnight at the end of the day, so "end_date" falls
+    on the following day.
 
     Raises ValueError if the start time is not strictly before the end time,
     which includes the ambiguous period "00:00 - 00:00", or if the price is
     inf, -inf or nan.
     """
-    row = rows[0]
-    row_date = datetime.strptime(row["Date"], '%Y-%m-%d')
-    times = row["Delivery Period"].split(' - ')
-    if len(times) != 2:
-        raise ValueError("Delivery Period must contain exactly a start time and an end time")
-    times = [datetime.strptime(row_time, '%H:%M').time() for row_time in times]
-    timedeltas = [timedelta(hours=row_time.hour, minutes=row_time.minute) for row_time in times]
-    if timedeltas[0] == timedeltas[1]:
-        raise ValueError("Delivery Period start time must not equal end time")
-    if timedeltas[1] == timedelta(0):
-        timedeltas[1] = timedelta(hours=24)
-    if timedeltas[0] > timedeltas[1]:
-        raise ValueError("Delivery Period start time must not be after end time")
-    dates = [row_date + row_timedelta for row_timedelta in timedeltas]
-    price = float(row['Price'])
-    if not math.isfinite(price):
-        raise ValueError("Price must not be infinite or nan")
-    return pd.DataFrame([{"start_date": dates[0], "end_date": dates[1], "price": price}])
+    cleaned_rows = []
+    for row in rows:
+        row_date = datetime.strptime(row["Date"], '%Y-%m-%d')
+        times = row["Delivery Period"].split(' - ')
+        if len(times) != 2:
+            raise ValueError("Delivery Period must contain exactly a start time and an end time")
+        times = [datetime.strptime(row_time, '%H:%M').time() for row_time in times]
+        timedeltas = [timedelta(hours=row_time.hour, minutes=row_time.minute) for row_time in times]
+        if timedeltas[0] == timedeltas[1]:
+            raise ValueError("Delivery Period start time must not equal end time")
+        if timedeltas[1] == timedelta(0):
+            timedeltas[1] = timedelta(hours=24)
+        if timedeltas[0] > timedeltas[1]:
+            raise ValueError("Delivery Period start time must not be after end time")
+        dates = [row_date + row_timedelta for row_timedelta in timedeltas]
+        price = float(row['Price'])
+        if not math.isfinite(price):
+            raise ValueError("Price must not be infinite or nan")
+        cleaned_rows.append({"start_date": dates[0], "end_date": dates[1], "price": price})
+    return pd.DataFrame(cleaned_rows)
