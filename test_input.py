@@ -480,3 +480,8 @@ class TestDayaheadSql:
                 'SELECT "Date", "Delivery Period", "Price" FROM "6f3c0c62-6d79-442c-9125-946f142c222b" '
                 "WHERE \"Date\" >= '2025-08-22' AND \"Date\" <= '2025-08-22'"
             )
+
+    class TestInvalidInput:
+        def test_raises_value_error_when_start_after_end(self):
+            with pytest.raises(ValueError):
+                dayahead_sql("d22d64ee-aa72-45be-9a3a-da86b9a105db", d(2025, 11, 9), d(2025, 11, 8))
