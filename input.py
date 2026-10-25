@@ -42,17 +42,17 @@ def clean_dayahead_prices(rows: list[dict[str, str]]) -> pd.DataFrame:
     Period" (start and end times in the form "13:00 - 14:00") and "Price" (a
     number stored as a string).
 
-    Returns a DataFrame with one row per input row, sorted by "start_date", and
-    the columns "start_date" and "end_date" (both datetimes combining the date
-    with the start and end of the delivery period) and "price" (a float). An end
-    time of "00:00" is taken as midnight at the end of the day, so "end_date"
-    falls on the following day.
+    Returns a DataFrame with one row per input row, sorted by "start_date",
+    and the columns "start_date" and "end_date" (both datetimes combining the
+    date with the start and end of the delivery period) and "price" (a
+    float). An end time of "00:00" is taken as midnight at the end of the
+    day, so "end_date" falls on the following day.
 
     Raises ValueError if rows is empty, if the start time is not strictly
     before the end time, which includes the ambiguous period "00:00 - 00:00",
     if the price is inf, -inf or nan, if a row does not start where the
-    previous row ends, or if the rows do not all cover periods of the same
-    length.
+    previous row ends (after sorting), or if the rows do not all cover
+    periods of the same length.
     """
     if not rows:
         raise ValueError("Rows must not be empty")
