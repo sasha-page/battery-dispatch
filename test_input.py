@@ -491,9 +491,10 @@ class TestDayaheadSql:
             [
                 pytest.param("2025-04-02", id="string"),
                 pytest.param(dt(2025, 4, 2, 0, 0), id="datetime"),
+                pytest.param(3.7, id="float"),
             ],
         )
-        def test_raises_type_error_when_start_date_not_a_date(self, start_date):
+        def test_raises_type_error_when_only_start_date_not_a_date(self, start_date):
             with pytest.raises(TypeError):
                 dayahead_sql("28ed83ab-ec01-4b43-b8b5-2940f481b63c", start_date, d(2025, 4, 10))
 
@@ -502,9 +503,10 @@ class TestDayaheadSql:
             [
                 pytest.param("2024-12-30", id="string"),
                 pytest.param(dt(2024, 12, 30, 0, 0), id="datetime"),
+                pytest.param(12.25, id="float"),
             ],
         )
-        def test_raises_type_error_when_end_date_not_a_date(self, end_date):
+        def test_raises_type_error_when_only_end_date_not_a_date(self, end_date):
             with pytest.raises(TypeError):
                 dayahead_sql("3659eb54-cc15-46e2-b397-480628caa0bf", d(2024, 12, 17), end_date)
 
