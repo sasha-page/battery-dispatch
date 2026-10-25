@@ -1,5 +1,6 @@
 from datetime import date, timedelta
 import calendar
+import uuid
 import numpy as np
 import pandas as pd
 
@@ -42,8 +43,12 @@ def dayahead_sql(resource_id: str, start_date: date, end_date: date) -> str:
     the resource resource_id, for dates from start_date to end_date
     inclusive.
 
-    Raises ValueError if start_date is after end_date.
+    Raises ValueError if resource_id is not a UUID in standard form (lowercase
+    hex digits in hyphen-separated groups of 8-4-4-4-12), or if start_date is
+    after end_date.
     """
+    if str(uuid.UUID(resource_id)) != resource_id:
+        raise ValueError("resource_id must be a UUID in standard form")
     if start_date > end_date:
         raise ValueError("start_date must not be after end_date")
     return (
