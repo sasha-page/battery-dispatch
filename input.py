@@ -4,7 +4,7 @@ import uuid
 import numpy as np
 import pandas as pd
 
-def month_ranges(start_date: date, end_date: date) -> list[dict[str, str | date]]:
+def create_month_ranges(start_date: date, end_date: date) -> list[dict[str, str | date]]:
     """Split the period start_date..end_date (inclusive) into calendar months.
 
     Returns a list in chronological order with one dict per month. Each dict has

@@ -1,7 +1,7 @@
 from pathlib import Path
 from datetime import datetime, date
 import requests
-from input import month_ranges, clean_dayahead_prices, create_dayahead_sql
+from input import create_month_ranges, clean_dayahead_prices, create_dayahead_sql
 from battery import ThresholdBattery
 
 def main():
@@ -22,7 +22,7 @@ def main():
                       "start_state_of_charge",
                       "end_state_of_charge"]
 
-    chunks = month_ranges(start_date, end_date)
+    chunks = create_month_ranges(start_date, end_date)
     for chunk in chunks:
         chunk_label = chunk["label"]
         chunk_start_date = chunk["start_date"]
