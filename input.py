@@ -1,5 +1,6 @@
 from datetime import date, timedelta
 import calendar
+import uuid
 import numpy as np
 import pandas as pd
 
@@ -33,6 +34,33 @@ def month_ranges(start_date: date, end_date: date) -> list[dict[str, str | date]
             year += 1
 
     return result
+
+
+def dayahead_sql(resource_id: str, start_date: date, end_date: date) -> str:
+    """Build the SQL query for day-ahead prices from start_date to end_date.
+
+    The query selects the "Date", "Delivery Period" and "Price" columns from
+    the resource resource_id, for dates from start_date to end_date
+    inclusive.
+
+    Raises ValueError if resource_id is not a UUID in standard form (lowercase
+    hex digits in hyphen-separated groups of 8-4-4-4-12), or if start_date is
+    after end_date.
+
+    Raises TypeError if start_date or end_date is not a datetime.date. A
+    datetime.datetime is rejected too, so that a time is never silently
+    dropped.
+    """
+    if str(uuid.UUID(resource_id)) != resource_id:
+        raise ValueError("resource_id must be a UUID in standard form")
+    if type(start_date) is not date or type(end_date) is not date:
+        raise TypeError("start_date and end_date must be dates")
+    if start_date > end_date:
+        raise ValueError("start_date must not be after end_date")
+    return (
+        f"""SELECT "Date", "Delivery Period", "Price" FROM "{resource_id}" """
+        f"""WHERE "Date" >= '{start_date:%Y-%m-%d}' AND "Date" <= '{end_date:%Y-%m-%d}'"""
+    )
 
 
 def clean_dayahead_prices(rows: list[dict[str, str]]) -> pd.DataFrame:

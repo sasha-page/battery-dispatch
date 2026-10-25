@@ -1,7 +1,7 @@
 import datetime
 import pandas as pd
 import pytest
-from input import month_ranges, clean_dayahead_prices
+from input import month_ranges, clean_dayahead_prices, dayahead_sql
 
 d = datetime.date
 dt = datetime.datetime
@@ -465,3 +465,73 @@ class TestCleanDayaheadPrices:
                     raw_row("2024-09-30", "21:00 - 22:00", "57.6"),
                     raw_row("2024-09-30", "22:00 - 23:00", price),
                 ])
+
+
+class TestDayaheadSql:
+    class TestValidInput:
+        def test_returns_query_for_resource_and_date_range(self):
+            assert dayahead_sql("49257836-7412-4474-9c0e-c121a092d0b1", d(2026, 3, 4), d(2026, 3, 19)) == (
+                """SELECT "Date", "Delivery Period", "Price" FROM "49257836-7412-4474-9c0e-c121a092d0b1" """
+                """WHERE "Date" >= '2026-03-04' AND "Date" <= '2026-03-19'"""
+            )
+
+        def test_returns_query_when_start_equals_end(self):
+            assert dayahead_sql("6f3c0c62-6d79-442c-9125-946f142c222b", d(2025, 8, 22), d(2025, 8, 22)) == (
+                """SELECT "Date", "Delivery Period", "Price" FROM "6f3c0c62-6d79-442c-9125-946f142c222b" """
+                """WHERE "Date" >= '2025-08-22' AND "Date" <= '2025-08-22'"""
+            )
+
+    class TestInvalidInput:
+        def test_raises_value_error_when_start_after_end(self):
+            with pytest.raises(ValueError):
+                dayahead_sql("d22d64ee-aa72-45be-9a3a-da86b9a105db", d(2025, 11, 9), d(2025, 11, 8))
+
+        @pytest.mark.parametrize(
+            "start_date",
+            [
+                pytest.param("2025-04-02", id="string"),
+                pytest.param(dt(2025, 4, 2, 0, 0), id="datetime"),
+                pytest.param(3.7, id="float"),
+            ],
+        )
+        def test_raises_type_error_when_only_start_date_not_a_date(self, start_date):
+            with pytest.raises(TypeError):
+                dayahead_sql("28ed83ab-ec01-4b43-b8b5-2940f481b63c", start_date, d(2025, 4, 10))
+
+        @pytest.mark.parametrize(
+            "end_date",
+            [
+                pytest.param("2024-12-30", id="string"),
+                pytest.param(dt(2024, 12, 30, 0, 0), id="datetime"),
+                pytest.param(12.25, id="float"),
+            ],
+        )
+        def test_raises_type_error_when_only_end_date_not_a_date(self, end_date):
+            with pytest.raises(TypeError):
+                dayahead_sql("3659eb54-cc15-46e2-b397-480628caa0bf", d(2024, 12, 17), end_date)
+
+        @pytest.mark.parametrize(
+            "start_date, end_date",
+            [
+                pytest.param("2026-05-06", "2026-05-20", id="strings"),
+                pytest.param(dt(2026, 5, 6, 0, 0), dt(2026, 5, 20, 0, 0), id="datetimes"),
+                pytest.param(0.8, 41.5, id="floats"),
+            ],
+        )
+        def test_raises_type_error_when_both_dates_not_dates(self, start_date, end_date):
+            with pytest.raises(TypeError):
+                dayahead_sql("972b436d-8ef3-489e-b313-bf4fbd9deff9", start_date, end_date)
+
+        @pytest.mark.parametrize(
+            "resource_id",
+            [
+                pytest.param("", id="empty"),
+                pytest.param("not-a-uuid", id="not_hex"),
+                pytest.param("35cddc46-14de-4f85-b05e-06e70389fd1", id="one_character_short"),
+                pytest.param("972B436D-8EF3-489E-B313-BF4FBD9DEFF9", id="uppercase"),
+                pytest.param("{b70e944d-7953-434e-8262-e963921f23ec}", id="braces"),
+            ],
+        )
+        def test_raises_value_error_when_resource_id_not_a_uuid(self, resource_id: str):
+            with pytest.raises(ValueError):
+                dayahead_sql(resource_id, d(2026, 2, 3), d(2026, 2, 25))
