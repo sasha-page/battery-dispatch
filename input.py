@@ -58,8 +58,8 @@ def dayahead_sql(resource_id: str, start_date: date, end_date: date) -> str:
     if start_date > end_date:
         raise ValueError("start_date must not be after end_date")
     return (
-        f'SELECT "Date", "Delivery Period", "Price" FROM "{resource_id}" '
-        f"WHERE \"Date\" >= '{start_date:%Y-%m-%d}' AND \"Date\" <= '{end_date:%Y-%m-%d}'"
+        f"""SELECT "Date", "Delivery Period", "Price" FROM "{resource_id}" """
+        f"""WHERE "Date" >= '{start_date:%Y-%m-%d}' AND "Date" <= '{end_date:%Y-%m-%d}'"""
     )
 
 

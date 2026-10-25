@@ -471,14 +471,14 @@ class TestDayaheadSql:
     class TestValidInput:
         def test_returns_query_for_resource_and_date_range(self):
             assert dayahead_sql("49257836-7412-4474-9c0e-c121a092d0b1", d(2026, 3, 4), d(2026, 3, 19)) == (
-                'SELECT "Date", "Delivery Period", "Price" FROM "49257836-7412-4474-9c0e-c121a092d0b1" '
-                "WHERE \"Date\" >= '2026-03-04' AND \"Date\" <= '2026-03-19'"
+                """SELECT "Date", "Delivery Period", "Price" FROM "49257836-7412-4474-9c0e-c121a092d0b1" """
+                """WHERE "Date" >= '2026-03-04' AND "Date" <= '2026-03-19'"""
             )
 
         def test_returns_query_when_start_equals_end(self):
             assert dayahead_sql("6f3c0c62-6d79-442c-9125-946f142c222b", d(2025, 8, 22), d(2025, 8, 22)) == (
-                'SELECT "Date", "Delivery Period", "Price" FROM "6f3c0c62-6d79-442c-9125-946f142c222b" '
-                "WHERE \"Date\" >= '2025-08-22' AND \"Date\" <= '2025-08-22'"
+                """SELECT "Date", "Delivery Period", "Price" FROM "6f3c0c62-6d79-442c-9125-946f142c222b" """
+                """WHERE "Date" >= '2025-08-22' AND "Date" <= '2025-08-22'"""
             )
 
     class TestInvalidInput:
