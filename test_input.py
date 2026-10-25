@@ -1,7 +1,7 @@
 import datetime
 import pandas as pd
 import pytest
-from input import month_ranges, clean_dayahead_prices
+from input import month_ranges, clean_dayahead_prices, dayahead_sql
 
 d = datetime.date
 dt = datetime.datetime
@@ -465,3 +465,12 @@ class TestCleanDayaheadPrices:
                     raw_row("2024-09-30", "21:00 - 22:00", "57.6"),
                     raw_row("2024-09-30", "22:00 - 23:00", price),
                 ])
+
+
+class TestDayaheadSql:
+    class TestValidInput:
+        def test_returns_query_for_resource_and_date_range(self):
+            assert dayahead_sql("49257836-7412-4474-9c0e-c121a092d0b1", d(2026, 3, 4), d(2026, 3, 19)) == (
+                'SELECT "Date", "Delivery Period", "Price" FROM "49257836-7412-4474-9c0e-c121a092d0b1" '
+                "WHERE \"Date\" >= '2026-03-04' AND \"Date\" <= '2026-03-19'"
+            )
