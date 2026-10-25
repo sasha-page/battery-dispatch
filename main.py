@@ -32,7 +32,7 @@ def main():
             dayahead_request = requests.get(dayahead_price_url, {"sql": dayahead_sql})
             dayahead_rows = dayahead_request.json()["result"]["records"]
         except requests.exceptions.ConnectionError:
-            print("No connection")
+            print("no connection")
             return
 
         data = clean_dayahead_prices(dayahead_rows)
