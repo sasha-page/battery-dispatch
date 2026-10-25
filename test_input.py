@@ -302,7 +302,7 @@ class TestCleanDayaheadPrices:
                 ]),
             )
 
-    class TestExtraKeys:
+    class TestIgnoreIrrelevantExtras:
         def test_ignores_keys_other_than_required_keys(self):
             pd.testing.assert_frame_equal(
                 clean_dayahead_prices([
@@ -312,6 +312,18 @@ class TestCleanDayaheadPrices:
                 pd.DataFrame([
                     clean_row(dt(2024, 11, 11, 9, 0), dt(2024, 11, 11, 10, 0), 74.2),
                     clean_row(dt(2024, 11, 11, 10, 0), dt(2024, 11, 11, 11, 0), 71.85),
+                ]),
+            )
+
+        def test_ignores_trailing_zeros_in_price(self):
+            pd.testing.assert_frame_equal(
+                clean_dayahead_prices([
+                    raw_row("2025-06-08", "14:00 - 15:00", "46.470000"),
+                    raw_row("2025-06-08", "15:00 - 16:00", "52.100000"),
+                ]),
+                pd.DataFrame([
+                    clean_row(dt(2025, 6, 8, 14, 0), dt(2025, 6, 8, 15, 0), 46.47),
+                    clean_row(dt(2025, 6, 8, 15, 0), dt(2025, 6, 8, 16, 0), 52.1),
                 ]),
             )
 
