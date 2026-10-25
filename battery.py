@@ -20,7 +20,7 @@ class Battery(ABC):
         nan since every comparison with nan is false.
         """
         if not 0 <= value <= 1:
-            raise ValueError("State of charge must be between 0 and 1")
+            raise ValueError("state of charge must be between 0 and 1")
         self._current_state_of_charge = value
 
     @abstractmethod
@@ -42,9 +42,9 @@ class ThresholdBattery(Battery):
 
     def _check_threshold(self) -> None:
         if not (math.isfinite(self._lower_threshold) and math.isfinite(self._upper_threshold)):
-            raise ValueError("Thresholds must not be infinite or nan")
+            raise ValueError("thresholds must not be infinite or nan")
         if self._upper_threshold <= self._lower_threshold:
-            raise ValueError("Upper threshold must be strictly greater than lower threshold")
+            raise ValueError("upper threshold must be strictly greater than lower threshold")
 
     def dispatch(self, price: float) -> float:
         energy_to_dispatch = 0

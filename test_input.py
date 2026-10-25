@@ -1,7 +1,7 @@
 import datetime
 import pandas as pd
 import pytest
-from input import month_ranges, clean_dayahead_prices, dayahead_sql
+from input import create_month_ranges, clean_dayahead_prices, create_dayahead_sql
 
 d = datetime.date
 dt = datetime.datetime
@@ -19,57 +19,57 @@ def clean_row(start_date: datetime.datetime, end_date: datetime.datetime, price:
     return {"start_date": start_date, "end_date": end_date, "price": price}
 
 
-class TestMonthRanges:
+class TestCreateMonthRanges:
     class TestRangeWithinSingleMonth:
         def test_returns_single_entry_when_range_is_whole_month(self):
-            assert month_ranges(d(2024, 4, 1), d(2024, 4, 30)) == [
+            assert create_month_ranges(d(2024, 4, 1), d(2024, 4, 30)) == [
                 month("2024-04", d(2024, 4, 1), d(2024, 4, 30)),
             ]
 
         def test_returns_single_entry_when_start_on_first_day_and_end_mid_month(self):
-            assert month_ranges(d(2024, 3, 1), d(2024, 3, 20)) == [
+            assert create_month_ranges(d(2024, 3, 1), d(2024, 3, 20)) == [
                 month("2024-03", d(2024, 3, 1), d(2024, 3, 20)),
             ]
 
         def test_returns_single_entry_when_start_mid_month_and_end_on_last_day(self):
-            assert month_ranges(d(2024, 3, 5), d(2024, 3, 31)) == [
+            assert create_month_ranges(d(2024, 3, 5), d(2024, 3, 31)) == [
                 month("2024-03", d(2024, 3, 5), d(2024, 3, 31)),
             ]
 
         def test_returns_single_entry_when_both_dates_mid_month(self):
-            assert month_ranges(d(2024, 2, 5), d(2024, 2, 20)) == [
+            assert create_month_ranges(d(2024, 2, 5), d(2024, 2, 20)) == [
                 month("2024-02", d(2024, 2, 5), d(2024, 2, 20)),
             ]
 
         def test_returns_single_day_entry_when_start_equals_end(self):
-            assert month_ranges(d(2024, 5, 17), d(2024, 5, 17)) == [
+            assert create_month_ranges(d(2024, 5, 17), d(2024, 5, 17)) == [
                 month("2024-05", d(2024, 5, 17), d(2024, 5, 17)),
             ]
 
     class TestRangeAcrossMonths:
         def test_returns_unclipped_entries_when_start_on_first_day_and_end_on_last_day(self):
-            assert month_ranges(d(2024, 3, 1), d(2024, 5, 31)) == [
+            assert create_month_ranges(d(2024, 3, 1), d(2024, 5, 31)) == [
                 month("2024-03", d(2024, 3, 1), d(2024, 3, 31)),
                 month("2024-04", d(2024, 4, 1), d(2024, 4, 30)),
                 month("2024-05", d(2024, 5, 1), d(2024, 5, 31)),
             ]
 
         def test_clips_final_entry_when_start_on_first_day_and_end_mid_month(self):
-            assert month_ranges(d(2024, 3, 1), d(2024, 5, 15)) == [
+            assert create_month_ranges(d(2024, 3, 1), d(2024, 5, 15)) == [
                 month("2024-03", d(2024, 3, 1), d(2024, 3, 31)),
                 month("2024-04", d(2024, 4, 1), d(2024, 4, 30)),
                 month("2024-05", d(2024, 5, 1), d(2024, 5, 15)),
             ]
 
         def test_clips_first_entry_when_start_mid_month_and_end_on_last_day(self):
-            assert month_ranges(d(2024, 3, 10), d(2024, 5, 31)) == [
+            assert create_month_ranges(d(2024, 3, 10), d(2024, 5, 31)) == [
                 month("2024-03", d(2024, 3, 10), d(2024, 3, 31)),
                 month("2024-04", d(2024, 4, 1), d(2024, 4, 30)),
                 month("2024-05", d(2024, 5, 1), d(2024, 5, 31)),
             ]
 
         def test_clips_first_and_final_entries_when_both_dates_mid_month(self):
-            assert month_ranges(d(2024, 3, 10), d(2024, 5, 15)) == [
+            assert create_month_ranges(d(2024, 3, 10), d(2024, 5, 15)) == [
                 month("2024-03", d(2024, 3, 10), d(2024, 3, 31)),
                 month("2024-04", d(2024, 4, 1), d(2024, 4, 30)),
                 month("2024-05", d(2024, 5, 1), d(2024, 5, 15)),
@@ -77,39 +77,39 @@ class TestMonthRanges:
 
     class TestStartOnLastDayOfMonth:
         def test_returns_first_entry_single_day_when_start_on_last_day_and_end_mid_month(self):
-            assert month_ranges(d(2024, 3, 31), d(2024, 5, 15)) == [
+            assert create_month_ranges(d(2024, 3, 31), d(2024, 5, 15)) == [
                 month("2024-03", d(2024, 3, 31), d(2024, 3, 31)),
                 month("2024-04", d(2024, 4, 1), d(2024, 4, 30)),
                 month("2024-05", d(2024, 5, 1), d(2024, 5, 15)),
             ]
 
         def test_returns_single_day_entry_when_start_equals_end_on_last_day(self):
-            assert month_ranges(d(2024, 6, 30), d(2024, 6, 30)) == [
+            assert create_month_ranges(d(2024, 6, 30), d(2024, 6, 30)) == [
                 month("2024-06", d(2024, 6, 30), d(2024, 6, 30)),
             ]
 
     class TestEndOnFirstDayOfMonth:
         def test_returns_last_entry_single_day_when_start_mid_month_and_end_on_first_day(self):
-            assert month_ranges(d(2024, 3, 10), d(2024, 5, 1)) == [
+            assert create_month_ranges(d(2024, 3, 10), d(2024, 5, 1)) == [
                 month("2024-03", d(2024, 3, 10), d(2024, 3, 31)),
                 month("2024-04", d(2024, 4, 1), d(2024, 4, 30)),
                 month("2024-05", d(2024, 5, 1), d(2024, 5, 1)),
             ]
 
         def test_returns_single_day_entry_when_start_equals_end_on_first_day(self):
-            assert month_ranges(d(2024, 7, 1), d(2024, 7, 1)) == [
+            assert create_month_ranges(d(2024, 7, 1), d(2024, 7, 1)) == [
                 month("2024-07", d(2024, 7, 1), d(2024, 7, 1)),
             ]
 
     class TestStartOnLastDayOfMonthAndEndOnFirstDayOfMonth:
         def test_returns_two_single_day_entries_when_start_on_last_day_and_end_on_first_day_one_day_later(self):
-            assert month_ranges(d(2024, 3, 31), d(2024, 4, 1)) == [
+            assert create_month_ranges(d(2024, 3, 31), d(2024, 4, 1)) == [
                 month("2024-03", d(2024, 3, 31), d(2024, 3, 31)),
                 month("2024-04", d(2024, 4, 1), d(2024, 4, 1)),
             ]
 
         def test_returns_first_and_last_entry_single_day_when_start_on_last_day_and_end_on_first_day_more_than_one_day_later(self):
-            assert month_ranges(d(2024, 1, 31), d(2024, 3, 1)) == [
+            assert create_month_ranges(d(2024, 1, 31), d(2024, 3, 1)) == [
                 month("2024-01", d(2024, 1, 31), d(2024, 1, 31)),
                 month("2024-02", d(2024, 2, 1), d(2024, 2, 29)),
                 month("2024-03", d(2024, 3, 1), d(2024, 3, 1)),
@@ -117,7 +117,7 @@ class TestMonthRanges:
 
     class TestRangeAcrossYears:
         def test_returns_one_entry_per_month_across_two_years(self):
-            assert month_ranges(d(2023, 11, 15), d(2024, 2, 10)) == [
+            assert create_month_ranges(d(2023, 11, 15), d(2024, 2, 10)) == [
                 month("2023-11", d(2023, 11, 15), d(2023, 11, 30)),
                 month("2023-12", d(2023, 12, 1), d(2023, 12, 31)),
                 month("2024-01", d(2024, 1, 1), d(2024, 1, 31)),
@@ -125,11 +125,11 @@ class TestMonthRanges:
             ]
 
         def test_returns_one_unique_entry_per_month_across_many_years(self):
-            result = month_ranges(d(2021, 6, 20), d(2024, 3, 5))
+            result = create_month_ranges(d(2021, 6, 20), d(2024, 3, 5))
             assert len(result) == 34
 
         def test_returns_single_day_entries_for_adjacent_days_at_year_boundary(self):
-            assert month_ranges(d(2023, 12, 31), d(2024, 1, 1)) == [
+            assert create_month_ranges(d(2023, 12, 31), d(2024, 1, 1)) == [
                 month("2023-12", d(2023, 12, 31), d(2023, 12, 31)),
                 month("2024-01", d(2024, 1, 1), d(2024, 1, 1)),
             ]
@@ -145,25 +145,25 @@ class TestMonthRanges:
             ],
         )
         def test_ends_february_on_correct_day_for_year_type(self, year: int, last_day: int):
-            assert month_ranges(d(year, 2, 1), d(year, 2, last_day)) == [
+            assert create_month_ranges(d(year, 2, 1), d(year, 2, last_day)) == [
                 month(f"{year}-02", d(year, 2, 1), d(year, 2, last_day)),
             ]
 
         def test_includes_leap_day_in_leap_year_when_range_extends_into_march(self):
-            assert month_ranges(d(2024, 2, 1), d(2024, 3, 31)) == [
+            assert create_month_ranges(d(2024, 2, 1), d(2024, 3, 31)) == [
                 month("2024-02", d(2024, 2, 1), d(2024, 2, 29)),
                 month("2024-03", d(2024, 3, 1), d(2024, 3, 31)),
             ]
 
         def test_excludes_leap_day_in_common_year_between_clipped_months(self):
-            assert month_ranges(d(2023, 1, 31), d(2023, 3, 1)) == [
+            assert create_month_ranges(d(2023, 1, 31), d(2023, 3, 1)) == [
                 month("2023-01", d(2023, 1, 31), d(2023, 1, 31)),
                 month("2023-02", d(2023, 2, 1), d(2023, 2, 28)),
                 month("2023-03", d(2023, 3, 1), d(2023, 3, 1)),
             ]
 
         def test_returns_correct_lengths_for_every_month_in_a_year(self):
-            result = month_ranges(d(2023, 1, 1), d(2023, 12, 31))
+            result = create_month_ranges(d(2023, 1, 1), d(2023, 12, 31))
             assert [entry["end_date"].day for entry in result] == [
                 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31,
             ]
@@ -179,7 +179,7 @@ class TestMonthRanges:
         )
         def test_raises_value_error_when_start_after_end(self, start_date, end_date):
             with pytest.raises(ValueError):
-                month_ranges(start_date, end_date)
+                create_month_ranges(start_date, end_date)
 
 
 class TestCleanDayaheadPrices:
@@ -467,16 +467,16 @@ class TestCleanDayaheadPrices:
                 ])
 
 
-class TestDayaheadSql:
+class TestCreateDayaheadSql:
     class TestValidInput:
         def test_returns_query_for_resource_and_date_range(self):
-            assert dayahead_sql("49257836-7412-4474-9c0e-c121a092d0b1", d(2026, 3, 4), d(2026, 3, 19)) == (
+            assert create_dayahead_sql("49257836-7412-4474-9c0e-c121a092d0b1", d(2026, 3, 4), d(2026, 3, 19)) == (
                 """SELECT "Date", "Delivery Period", "Price" FROM "49257836-7412-4474-9c0e-c121a092d0b1" """
                 """WHERE "Date" >= '2026-03-04' AND "Date" <= '2026-03-19'"""
             )
 
         def test_returns_query_when_start_equals_end(self):
-            assert dayahead_sql("6f3c0c62-6d79-442c-9125-946f142c222b", d(2025, 8, 22), d(2025, 8, 22)) == (
+            assert create_dayahead_sql("6f3c0c62-6d79-442c-9125-946f142c222b", d(2025, 8, 22), d(2025, 8, 22)) == (
                 """SELECT "Date", "Delivery Period", "Price" FROM "6f3c0c62-6d79-442c-9125-946f142c222b" """
                 """WHERE "Date" >= '2025-08-22' AND "Date" <= '2025-08-22'"""
             )
@@ -484,7 +484,7 @@ class TestDayaheadSql:
     class TestInvalidInput:
         def test_raises_value_error_when_start_after_end(self):
             with pytest.raises(ValueError):
-                dayahead_sql("d22d64ee-aa72-45be-9a3a-da86b9a105db", d(2025, 11, 9), d(2025, 11, 8))
+                create_dayahead_sql("d22d64ee-aa72-45be-9a3a-da86b9a105db", d(2025, 11, 9), d(2025, 11, 8))
 
         @pytest.mark.parametrize(
             "start_date",
@@ -496,7 +496,7 @@ class TestDayaheadSql:
         )
         def test_raises_type_error_when_only_start_date_not_a_date(self, start_date):
             with pytest.raises(TypeError):
-                dayahead_sql("28ed83ab-ec01-4b43-b8b5-2940f481b63c", start_date, d(2025, 4, 10))
+                create_dayahead_sql("28ed83ab-ec01-4b43-b8b5-2940f481b63c", start_date, d(2025, 4, 10))
 
         @pytest.mark.parametrize(
             "end_date",
@@ -508,7 +508,7 @@ class TestDayaheadSql:
         )
         def test_raises_type_error_when_only_end_date_not_a_date(self, end_date):
             with pytest.raises(TypeError):
-                dayahead_sql("3659eb54-cc15-46e2-b397-480628caa0bf", d(2024, 12, 17), end_date)
+                create_dayahead_sql("3659eb54-cc15-46e2-b397-480628caa0bf", d(2024, 12, 17), end_date)
 
         @pytest.mark.parametrize(
             "start_date, end_date",
@@ -520,7 +520,7 @@ class TestDayaheadSql:
         )
         def test_raises_type_error_when_both_dates_not_dates(self, start_date, end_date):
             with pytest.raises(TypeError):
-                dayahead_sql("972b436d-8ef3-489e-b313-bf4fbd9deff9", start_date, end_date)
+                create_dayahead_sql("972b436d-8ef3-489e-b313-bf4fbd9deff9", start_date, end_date)
 
         @pytest.mark.parametrize(
             "resource_id",
@@ -534,4 +534,4 @@ class TestDayaheadSql:
         )
         def test_raises_value_error_when_resource_id_not_a_uuid(self, resource_id: str):
             with pytest.raises(ValueError):
-                dayahead_sql(resource_id, d(2026, 2, 3), d(2026, 2, 25))
+                create_dayahead_sql(resource_id, d(2026, 2, 3), d(2026, 2, 25))

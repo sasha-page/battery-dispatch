@@ -1,7 +1,7 @@
 from pathlib import Path
 from datetime import datetime, date
 import requests
-from input import month_ranges, clean_dayahead_prices
+from input import create_month_ranges, clean_dayahead_prices, create_dayahead_sql
 from battery import ThresholdBattery
 
 def main():
@@ -10,7 +10,6 @@ def main():
 
     dayahead_price_url = "https://api.neso.energy/api/3/action/datastore_search_sql"
     dayahead_resource_id = "4f27eea5-7038-4f73-9740-e3e4ad47c26a"
-    dayahead_columns = ["Date", "Delivery Period", "Price"]
 
     battery = ThresholdBattery(75, 175)
     output_folder = Path.cwd() / "output" / datetime.now().strftime("%Y-%m-%d %H-%M-%S")
@@ -23,17 +22,13 @@ def main():
                       "start_state_of_charge",
                       "end_state_of_charge"]
 
-    chunks = month_ranges(start_date, end_date)
+    chunks = create_month_ranges(start_date, end_date)
     for chunk in chunks:
         chunk_label = chunk["label"]
         chunk_start_date = chunk["start_date"]
         chunk_end_date = chunk["end_date"]
+        dayahead_sql = create_dayahead_sql(dayahead_resource_id, chunk_start_date, chunk_end_date)
         try:
-            dayahead_sql = f"""
-                SELECT "{'", "'.join(dayahead_columns)}" FROM "{dayahead_resource_id}"
-                WHERE "Date" >= '{chunk_start_date.strftime("%Y-%m-%d")}'
-                AND "Date" <= '{chunk_end_date.strftime("%Y-%m-%d")}'
-            """
             dayahead_request = requests.get(dayahead_price_url, {"sql": dayahead_sql})
             dayahead_rows = dayahead_request.json()["result"]["records"]
         except requests.exceptions.ConnectionError:
