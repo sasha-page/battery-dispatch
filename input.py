@@ -1,6 +1,6 @@
-from datetime import datetime, date, timedelta
+from datetime import date, timedelta
 import calendar
-import math
+import numpy as np
 import pandas as pd
 
 def month_ranges(start_date: date, end_date: date) -> list[dict[str, str | date]]:
@@ -56,29 +56,43 @@ def clean_dayahead_prices(rows: list[dict[str, str]]) -> pd.DataFrame:
     """
     if not rows:
         raise ValueError("Rows must not be empty")
-    cleaned_rows = []
-    for row in rows:
-        row_date = datetime.strptime(row["Date"], '%Y-%m-%d')
-        times = row["Delivery Period"].split(' - ')
-        if len(times) != 2:
-            raise ValueError("Delivery Period must contain exactly a start time and an end time")
-        times = [datetime.strptime(row_time, '%H:%M').time() for row_time in times]
-        timedeltas = [timedelta(hours=row_time.hour, minutes=row_time.minute) for row_time in times]
-        if timedeltas[0] == timedeltas[1]:
-            raise ValueError("Delivery Period start time must not equal end time")
-        if timedeltas[1] == timedelta(0):
-            timedeltas[1] = timedelta(hours=24)
-        if timedeltas[0] > timedeltas[1]:
-            raise ValueError("Delivery Period start time must not be after end time")
-        dates = [row_date + row_timedelta for row_timedelta in timedeltas]
-        price = float(row['Price'])
-        if not math.isfinite(price):
-            raise ValueError("Price must not be infinite or nan")
-        cleaned_rows.append({"start_date": dates[0], "end_date": dates[1], "price": price})
-    cleaned_rows.sort(key=lambda cleaned_row: cleaned_row["start_date"])
-    for previous_row, current_row in zip(cleaned_rows, cleaned_rows[1:]):
-        if current_row["start_date"] != previous_row["end_date"]:
-            raise ValueError("Each row must start where the previous row ends")
-        if current_row["end_date"] - current_row["start_date"] != previous_row["end_date"] - previous_row["start_date"]:
-            raise ValueError("All rows must cover periods of the same length")
-    return pd.DataFrame(cleaned_rows)
+    raw = pd.DataFrame(rows)
+    required_keys = ["Date", "Delivery Period", "Price"]
+    for key in required_keys:
+        if key not in raw.columns or raw[key].isna().any():
+            raise KeyError(key)
+
+    row_dates = pd.to_datetime(raw["Date"], format="%Y-%m-%d")
+    if row_dates.isna().any():
+        raise ValueError("Date must not be empty")
+
+    times = raw["Delivery Period"].str.split(" - ")
+    if (times.str.len() != 2).any():
+        raise ValueError("Delivery Period must contain exactly a start time and an end time")
+    start_times = pd.to_datetime(times.str[0], format="%H:%M")
+    end_times = pd.to_datetime(times.str[1], format="%H:%M")
+    if start_times.isna().any() or end_times.isna().any():
+        raise ValueError("Delivery Period start and end times must not be empty")
+    start_offsets = start_times - start_times.dt.normalize()
+    end_offsets = end_times - end_times.dt.normalize()
+    if (start_offsets == end_offsets).any():
+        raise ValueError("Delivery Period start time must not equal end time")
+    end_offsets = end_offsets.mask(end_offsets == timedelta(0), timedelta(hours=24))
+    if (start_offsets > end_offsets).any():
+        raise ValueError("Delivery Period start time must not be after end time")
+
+    prices = pd.to_numeric(raw["Price"]).astype("float64")
+    if not np.isfinite(prices).all():
+        raise ValueError("Price must not be infinite or nan")
+
+    cleaned = pd.DataFrame({
+        "start_date": row_dates + start_offsets,
+        "end_date": row_dates + end_offsets,
+        "price": prices,
+    }).sort_values("start_date", ignore_index=True)
+
+    if (cleaned["start_date"].iloc[1:].to_numpy() != cleaned["end_date"].iloc[:-1].to_numpy()).any():
+        raise ValueError("Each row must start where the previous row ends")
+    if (cleaned["end_date"] - cleaned["start_date"]).nunique() > 1:
+        raise ValueError("All rows must cover periods of the same length")
+    return cleaned
