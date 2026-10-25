@@ -1,7 +1,7 @@
 from pathlib import Path
 from datetime import datetime, date
 import requests
-from input import month_ranges, clean_dayahead_prices, dayahead_sql
+from input import month_ranges, clean_dayahead_prices, create_dayahead_sql
 from battery import ThresholdBattery
 
 def main():
@@ -27,9 +27,9 @@ def main():
         chunk_label = chunk["label"]
         chunk_start_date = chunk["start_date"]
         chunk_end_date = chunk["end_date"]
-        sql = dayahead_sql(dayahead_resource_id, chunk_start_date, chunk_end_date)
+        dayahead_sql = create_dayahead_sql(dayahead_resource_id, chunk_start_date, chunk_end_date)
         try:
-            dayahead_request = requests.get(dayahead_price_url, {"sql": sql})
+            dayahead_request = requests.get(dayahead_price_url, {"sql": dayahead_sql})
             dayahead_rows = dayahead_request.json()["result"]["records"]
         except requests.exceptions.ConnectionError:
             print("no connection")
