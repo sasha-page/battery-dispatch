@@ -1,6 +1,7 @@
-from datetime import datetime, date, timedelta
+from datetime import date, timedelta
 import calendar
-import math
+import numpy as np
+import pandas as pd
 
 def month_ranges(start_date: date, end_date: date) -> list[dict[str, str | date]]:
     """Split the period start_date..end_date (inclusive) into calendar months.
@@ -34,36 +35,64 @@ def month_ranges(start_date: date, end_date: date) -> list[dict[str, str | date]
     return result
 
 
-def clean_dayahead_price_row(row: dict[str, str]) -> dict[str, datetime | float]:
-    """Convert a raw day-ahead price row into typed values.
+def clean_dayahead_prices(rows: list[dict[str, str]]) -> pd.DataFrame:
+    """Convert raw day-ahead price rows into typed values.
 
-    The row must have the keys "Date" (a "YYYY-MM-DD" string), "Delivery Period"
-    (start and end times in the form "13:00 - 14:00") and "Price" (a number
-    stored as a string).
+    Each row must have the keys "Date" (a "YYYY-MM-DD" string), "Delivery
+    Period" (start and end times in the form "13:00 - 14:00") and "Price" (a
+    number stored as a string).
 
-    Returns a dict with the keys "start_date" and "end_date" (both
-    datetime.datetime objects combining the date with the start and end of the
-    delivery period) and "price" (a float). An end time of "00:00" is taken as
-    midnight at the end of the day, so "end_date" falls on the following day.
+    Returns a DataFrame with one row per input row, sorted by "start_date",
+    and the columns "start_date" and "end_date" (both datetimes combining the
+    date with the start and end of the delivery period) and "price" (a
+    float). An end time of "00:00" is taken as midnight at the end of the
+    day, so "end_date" falls on the following day.
 
-    Raises ValueError if the start time is not strictly before the end time,
-    which includes the ambiguous period "00:00 - 00:00", or if the price is
-    inf, -inf or nan.
+    Raises ValueError if rows is empty, if the start time is not strictly
+    before the end time, which includes the ambiguous period "00:00 - 00:00",
+    if the price is inf, -inf or nan, if a row does not start where the
+    previous row ends (after sorting), or if the rows do not all cover
+    periods of the same length.
     """
-    row_date = datetime.strptime(row["Date"], '%Y-%m-%d')
-    times = row["Delivery Period"].split(' - ')
-    if len(times) != 2:
+    if not rows:
+        raise ValueError("Rows must not be empty")
+    raw = pd.DataFrame(rows)
+    required_keys = ["Date", "Delivery Period", "Price"]
+    for key in required_keys:
+        if key not in raw.columns or raw[key].isna().any():
+            raise KeyError(key)
+
+    row_dates = pd.to_datetime(raw["Date"], format="%Y-%m-%d")
+    if row_dates.isna().any():
+        raise ValueError("Date must not be empty")
+
+    times = raw["Delivery Period"].str.split(" - ")
+    if (times.str.len() != 2).any():
         raise ValueError("Delivery Period must contain exactly a start time and an end time")
-    times = [datetime.strptime(row_time, '%H:%M').time() for row_time in times]
-    timedeltas = [timedelta(hours=row_time.hour, minutes=row_time.minute) for row_time in times]
-    if timedeltas[0] == timedeltas[1]:
+    start_times = pd.to_datetime(times.str[0], format="%H:%M")
+    end_times = pd.to_datetime(times.str[1], format="%H:%M")
+    if start_times.isna().any() or end_times.isna().any():
+        raise ValueError("Delivery Period start and end times must not be empty")
+    start_offsets = start_times - start_times.dt.normalize()
+    end_offsets = end_times - end_times.dt.normalize()
+    if (start_offsets == end_offsets).any():
         raise ValueError("Delivery Period start time must not equal end time")
-    if timedeltas[1] == timedelta(0):
-        timedeltas[1] = timedelta(hours=24)
-    if timedeltas[0] > timedeltas[1]:
+    end_offsets = end_offsets.mask(end_offsets == timedelta(0), timedelta(hours=24))
+    if (start_offsets > end_offsets).any():
         raise ValueError("Delivery Period start time must not be after end time")
-    dates = [row_date + row_timedelta for row_timedelta in timedeltas]
-    price = float(row['Price'])
-    if not math.isfinite(price):
+
+    prices = pd.to_numeric(raw["Price"]).astype("float64")
+    if not np.isfinite(prices).all():
         raise ValueError("Price must not be infinite or nan")
-    return {"start_date": dates[0], "end_date": dates[1], "price": price}
+
+    cleaned = pd.DataFrame({
+        "start_date": row_dates + start_offsets,
+        "end_date": row_dates + end_offsets,
+        "price": prices,
+    }).sort_values("start_date", ignore_index=True)
+
+    if (cleaned["start_date"].iloc[1:].to_numpy() != cleaned["end_date"].iloc[:-1].to_numpy()).any():
+        raise ValueError("Each row must start where the previous row ends")
+    if (cleaned["end_date"] - cleaned["start_date"]).nunique() > 1:
+        raise ValueError("All rows must cover periods of the same length")
+    return cleaned

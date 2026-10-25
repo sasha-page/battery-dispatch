@@ -1,6 +1,7 @@
 import datetime
+import pandas as pd
 import pytest
-from input import month_ranges, clean_dayahead_price_row
+from input import month_ranges, clean_dayahead_prices
 
 d = datetime.date
 dt = datetime.datetime
@@ -10,7 +11,7 @@ def month(label: str, start_date: datetime.date, end_date: datetime.date) -> dic
     return {"label": label, "start_date": start_date, "end_date": end_date}
 
 
-def raw_row(row_date: str = "2024-03-15", delivery_period: str = "13:00 - 14:00", price: str = "45.67") -> dict:
+def raw_row(row_date: str, delivery_period: str, price: str) -> dict:
     return {"Date": row_date, "Delivery Period": delivery_period, "Price": price}
 
 
@@ -181,24 +182,26 @@ class TestMonthRanges:
                 month_ranges(start_date, end_date)
 
 
-class TestCleanDayaheadPriceRow:
-    class TestDeliveryPeriodPosition:
+class TestCleanDayaheadPrices:
+    class TestSingleRow:
         def test_returns_start_at_midnight_when_period_starts_at_beginning_of_day(self):
-            assert clean_dayahead_price_row(raw_row("2024-03-15", "00:00 - 01:00", "45.67")) == clean_row(
-                dt(2024, 3, 15, 0, 0), dt(2024, 3, 15, 1, 0), 45.67,
+            pd.testing.assert_frame_equal(
+                clean_dayahead_prices([raw_row("2024-03-15", "00:00 - 01:00", "45.67")]),
+                pd.DataFrame([clean_row(dt(2024, 3, 15, 0, 0), dt(2024, 3, 15, 1, 0), 45.67)]),
             )
 
         def test_returns_end_at_midnight_of_following_day_when_period_ends_at_end_of_day(self):
-            assert clean_dayahead_price_row(raw_row("2024-03-15", "23:00 - 00:00", "45.67")) == clean_row(
-                dt(2024, 3, 15, 23, 0), dt(2024, 3, 16, 0, 0), 45.67,
+            pd.testing.assert_frame_equal(
+                clean_dayahead_prices([raw_row("2024-03-15", "23:00 - 00:00", "45.67")]),
+                pd.DataFrame([clean_row(dt(2024, 3, 15, 23, 0), dt(2024, 3, 16, 0, 0), 45.67)]),
             )
 
         def test_returns_start_and_end_on_same_day_when_period_starts_and_ends_mid_day(self):
-            assert clean_dayahead_price_row(raw_row("2024-03-15", "13:00 - 14:00", "45.67")) == clean_row(
-                dt(2024, 3, 15, 13, 0), dt(2024, 3, 15, 14, 0), 45.67,
+            pd.testing.assert_frame_equal(
+                clean_dayahead_prices([raw_row("2024-03-15", "13:00 - 14:00", "45.67")]),
+                pd.DataFrame([clean_row(dt(2024, 3, 15, 13, 0), dt(2024, 3, 15, 14, 0), 45.67)]),
             )
 
-    class TestStartBeforeEnd:
         @pytest.mark.parametrize(
             "delivery_period",
             [
@@ -208,19 +211,178 @@ class TestCleanDayaheadPriceRow:
         )
         def test_raises_value_error_when_start_not_strictly_before_end(self, delivery_period: str):
             with pytest.raises(ValueError):
-                clean_dayahead_price_row(raw_row(delivery_period=delivery_period))
+                clean_dayahead_prices([raw_row("2024-01-08", delivery_period, "12.34")])
 
         def test_raises_value_error_when_period_starts_and_ends_at_midnight(self):
             with pytest.raises(ValueError):
-                clean_dayahead_price_row(raw_row(delivery_period="00:00 - 00:00"))
+                clean_dayahead_prices([raw_row("2024-02-19", "00:00 - 00:00", "56.78")])
+
+    class TestMultipleRows:
+        def test_returns_cleaned_rows_when_start_at_midnight_and_end_at_midnight(self):
+            pd.testing.assert_frame_equal(
+                clean_dayahead_prices([
+                    raw_row("2024-03-15", "00:00 - 06:00", "10.5"),
+                    raw_row("2024-03-15", "06:00 - 12:00", "20.5"),
+                    raw_row("2024-03-15", "12:00 - 18:00", "30.5"),
+                    raw_row("2024-03-15", "18:00 - 00:00", "40.5"),
+                    raw_row("2024-03-16", "00:00 - 06:00", "50.5"),
+                    raw_row("2024-03-16", "06:00 - 12:00", "60.5"),
+                    raw_row("2024-03-16", "12:00 - 18:00", "70.5"),
+                    raw_row("2024-03-16", "18:00 - 00:00", "80.5"),
+                ]),
+                pd.DataFrame([
+                    clean_row(dt(2024, 3, 15, 0, 0), dt(2024, 3, 15, 6, 0), 10.5),
+                    clean_row(dt(2024, 3, 15, 6, 0), dt(2024, 3, 15, 12, 0), 20.5),
+                    clean_row(dt(2024, 3, 15, 12, 0), dt(2024, 3, 15, 18, 0), 30.5),
+                    clean_row(dt(2024, 3, 15, 18, 0), dt(2024, 3, 16, 0, 0), 40.5),
+                    clean_row(dt(2024, 3, 16, 0, 0), dt(2024, 3, 16, 6, 0), 50.5),
+                    clean_row(dt(2024, 3, 16, 6, 0), dt(2024, 3, 16, 12, 0), 60.5),
+                    clean_row(dt(2024, 3, 16, 12, 0), dt(2024, 3, 16, 18, 0), 70.5),
+                    clean_row(dt(2024, 3, 16, 18, 0), dt(2024, 3, 17, 0, 0), 80.5),
+                ]),
+            )
+
+        def test_returns_cleaned_rows_when_start_at_midnight_and_end_not_at_midnight(self):
+            pd.testing.assert_frame_equal(
+                clean_dayahead_prices([
+                    raw_row("2024-03-15", "00:00 - 06:00", "10.5"),
+                    raw_row("2024-03-15", "06:00 - 12:00", "20.5"),
+                    raw_row("2024-03-15", "12:00 - 18:00", "30.5"),
+                    raw_row("2024-03-15", "18:00 - 00:00", "40.5"),
+                    raw_row("2024-03-16", "00:00 - 06:00", "50.5"),
+                    raw_row("2024-03-16", "06:00 - 12:00", "60.5"),
+                ]),
+                pd.DataFrame([
+                    clean_row(dt(2024, 3, 15, 0, 0), dt(2024, 3, 15, 6, 0), 10.5),
+                    clean_row(dt(2024, 3, 15, 6, 0), dt(2024, 3, 15, 12, 0), 20.5),
+                    clean_row(dt(2024, 3, 15, 12, 0), dt(2024, 3, 15, 18, 0), 30.5),
+                    clean_row(dt(2024, 3, 15, 18, 0), dt(2024, 3, 16, 0, 0), 40.5),
+                    clean_row(dt(2024, 3, 16, 0, 0), dt(2024, 3, 16, 6, 0), 50.5),
+                    clean_row(dt(2024, 3, 16, 6, 0), dt(2024, 3, 16, 12, 0), 60.5),
+                ]),
+            )
+
+        def test_returns_cleaned_rows_when_start_not_at_midnight_and_end_at_midnight(self):
+            pd.testing.assert_frame_equal(
+                clean_dayahead_prices([
+                    raw_row("2024-03-15", "12:00 - 18:00", "30.5"),
+                    raw_row("2024-03-15", "18:00 - 00:00", "40.5"),
+                ]),
+                pd.DataFrame([
+                    clean_row(dt(2024, 3, 15, 12, 0), dt(2024, 3, 15, 18, 0), 30.5),
+                    clean_row(dt(2024, 3, 15, 18, 0), dt(2024, 3, 16, 0, 0), 40.5),
+                ]),
+            )
+
+        def test_returns_cleaned_rows_when_start_not_at_midnight_and_end_not_at_midnight(self):
+            pd.testing.assert_frame_equal(
+                clean_dayahead_prices([
+                    raw_row("2024-03-15", "06:00 - 12:00", "20.5"),
+                    raw_row("2024-03-15", "12:00 - 18:00", "30.5"),
+                ]),
+                pd.DataFrame([
+                    clean_row(dt(2024, 3, 15, 6, 0), dt(2024, 3, 15, 12, 0), 20.5),
+                    clean_row(dt(2024, 3, 15, 12, 0), dt(2024, 3, 15, 18, 0), 30.5),
+                ]),
+            )
+
+        def test_returns_cleaned_rows_sorted_by_start_when_rows_out_of_order(self):
+            pd.testing.assert_frame_equal(
+                clean_dayahead_prices([
+                    raw_row("2025-01-01", "00:00 - 06:00", "84.6"),
+                    raw_row("2024-12-31", "12:00 - 18:00", "95.15"),
+                    raw_row("2025-01-01", "06:00 - 12:00", "78.3"),
+                    raw_row("2024-12-31", "18:00 - 00:00", "102.4"),
+                ]),
+                pd.DataFrame([
+                    clean_row(dt(2024, 12, 31, 12, 0), dt(2024, 12, 31, 18, 0), 95.15),
+                    clean_row(dt(2024, 12, 31, 18, 0), dt(2025, 1, 1, 0, 0), 102.4),
+                    clean_row(dt(2025, 1, 1, 0, 0), dt(2025, 1, 1, 6, 0), 84.6),
+                    clean_row(dt(2025, 1, 1, 6, 0), dt(2025, 1, 1, 12, 0), 78.3),
+                ]),
+            )
+
+    class TestExtraKeys:
+        def test_ignores_keys_other_than_required_keys(self):
+            pd.testing.assert_frame_equal(
+                clean_dayahead_prices([
+                    {"Date": "2024-11-11", "Delivery Period": "09:00 - 10:00", "Price": "74.2", "_id": "1", "Currency": "GBP"},
+                    {"Date": "2024-11-11", "Delivery Period": "10:00 - 11:00", "Price": "71.85", "_id": "2", "Currency": "GBP"},
+                ]),
+                pd.DataFrame([
+                    clean_row(dt(2024, 11, 11, 9, 0), dt(2024, 11, 11, 10, 0), 74.2),
+                    clean_row(dt(2024, 11, 11, 10, 0), dt(2024, 11, 11, 11, 0), 71.85),
+                ]),
+            )
+
+    class TestStartEqualToPreviousEnd:
+        def test_raises_value_error_when_gap_between_rows(self):
+            with pytest.raises(ValueError):
+                clean_dayahead_prices([
+                    raw_row("2024-06-10", "00:00 - 00:30", "41.2"),
+                    raw_row("2024-06-10", "01:00 - 01:30", "39.75"),
+                    raw_row("2024-06-10", "02:00 - 02:30", "38.6"),
+                ])
+
+        def test_raises_value_error_when_rows_overlap(self):
+            with pytest.raises(ValueError):
+                clean_dayahead_prices([
+                    raw_row("2024-06-10", "03:00 - 04:00", "37.9"),
+                    raw_row("2024-06-10", "03:30 - 04:30", "36.45"),
+                    raw_row("2024-06-10", "04:30 - 05:30", "35.8"),
+                ])
+
+        def test_raises_value_error_when_rows_duplicated(self):
+            with pytest.raises(ValueError):
+                clean_dayahead_prices([
+                    raw_row("2024-06-10", "10:00 - 11:00", "63.4"),
+                    raw_row("2024-06-10", "10:00 - 11:00", "63.4"),
+                    raw_row("2024-06-10", "11:00 - 12:00", "61.95"),
+                ])
+
+    class TestRowsHaveSameLength:
+        def test_raises_value_error_when_first_row_longer(self):
+            with pytest.raises(ValueError):
+                clean_dayahead_prices([
+                    raw_row("2024-08-14", "00:00 - 02:00", "29.4"),
+                    raw_row("2024-08-14", "02:00 - 03:00", "27.85"),
+                    raw_row("2024-08-14", "03:00 - 04:00", "26.3"),
+                ])
+
+        def test_raises_value_error_when_middle_row_longer(self):
+            with pytest.raises(ValueError):
+                clean_dayahead_prices([
+                    raw_row("2024-08-14", "05:00 - 06:00", "33.1"),
+                    raw_row("2024-08-14", "06:00 - 08:00", "44.65"),
+                    raw_row("2024-08-14", "08:00 - 09:00", "55.2"),
+                ])
+
+        def test_raises_value_error_when_last_row_longer(self):
+            with pytest.raises(ValueError):
+                clean_dayahead_prices([
+                    raw_row("2024-08-14", "10:00 - 11:00", "66.75"),
+                    raw_row("2024-08-14", "11:00 - 12:00", "64.3"),
+                    raw_row("2024-08-14", "12:00 - 14:00", "59.9"),
+                ])
+
+        def test_raises_value_error_when_only_two_rows(self):
+            with pytest.raises(ValueError):
+                clean_dayahead_prices([
+                    raw_row("2024-08-14", "15:00 - 16:00", "57.45"),
+                    raw_row("2024-08-14", "16:00 - 18:00", "71.8"),
+                ])
 
     class TestInvalidInput:
+        def test_raises_value_error_when_no_rows(self):
+            with pytest.raises(ValueError):
+                clean_dayahead_prices([])
+
         @pytest.mark.parametrize("missing_key", ["Date", "Delivery Period", "Price"])
         def test_raises_key_error_when_required_key_missing(self, missing_key: str):
-            row = raw_row()
+            row = raw_row("2024-04-22", "08:00 - 09:00", "23.45")
             del row[missing_key]
             with pytest.raises(KeyError):
-                clean_dayahead_price_row(row)
+                clean_dayahead_prices([row])
 
         @pytest.mark.parametrize(
             "row_date",
@@ -233,7 +395,11 @@ class TestCleanDayaheadPriceRow:
         )
         def test_raises_value_error_when_date_has_incorrect_format(self, row_date: str):
             with pytest.raises(ValueError):
-                clean_dayahead_price_row(raw_row(row_date=row_date))
+                clean_dayahead_prices([
+                    raw_row(row_date, "05:00 - 06:00", "31.2"),
+                    raw_row(row_date, "06:00 - 07:00", "33.8"),
+                    raw_row(row_date, "07:00 - 08:00", "36.1"),
+                ])
 
         @pytest.mark.parametrize(
             "delivery_period",
@@ -249,7 +415,11 @@ class TestCleanDayaheadPriceRow:
         )
         def test_raises_value_error_when_delivery_period_has_incorrect_format(self, delivery_period: str):
             with pytest.raises(ValueError):
-                clean_dayahead_price_row(raw_row(delivery_period=delivery_period))
+                clean_dayahead_prices([
+                    raw_row("2024-05-27", "12:00 - 13:00", "48.9"),
+                    raw_row("2024-05-27", delivery_period, "51.3"),
+                    raw_row("2024-05-27", "14:00 - 15:00", "49.7"),
+                ])
 
         @pytest.mark.parametrize(
             "price",
@@ -262,7 +432,11 @@ class TestCleanDayaheadPriceRow:
         )
         def test_raises_value_error_when_price_has_incorrect_format(self, price: str):
             with pytest.raises(ValueError):
-                clean_dayahead_price_row(raw_row(price=price))
+                clean_dayahead_prices([
+                    raw_row("2024-07-03", "17:00 - 18:00", price),
+                    raw_row("2024-07-03", "18:00 - 19:00", "88.25"),
+                    raw_row("2024-07-03", "19:00 - 20:00", "92.4"),
+                ])
 
         @pytest.mark.parametrize(
             "price",
@@ -274,4 +448,8 @@ class TestCleanDayaheadPriceRow:
         )
         def test_raises_value_error_when_price_not_finite(self, price: str):
             with pytest.raises(ValueError):
-                clean_dayahead_price_row(raw_row(price=price))
+                clean_dayahead_prices([
+                    raw_row("2024-09-30", "20:00 - 21:00", "61.15"),
+                    raw_row("2024-09-30", "21:00 - 22:00", "57.6"),
+                    raw_row("2024-09-30", "22:00 - 23:00", price),
+                ])

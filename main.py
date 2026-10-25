@@ -1,9 +1,7 @@
 from pathlib import Path
 from datetime import datetime, date
-import csv
 import requests
-import pandas as pd
-from input import month_ranges, clean_dayahead_price_row
+from input import month_ranges, clean_dayahead_prices
 from battery import ThresholdBattery
 
 def main():
@@ -42,21 +40,23 @@ def main():
             print("no connection")
             return
 
-        data = pd.DataFrame(columns=output_columns)
-        output_file_location = output_folder / f"{chunk_label}.csv"
-        output_file = open(output_file_location, 'w', newline='')
-        output_writer = csv.writer(output_file)
-        output_writer.writerow(output_columns)
-        for row in dayahead_rows:
-            row_data = clean_dayahead_price_row(row)
-            row_data["start_state_of_charge"] = battery.current_state_of_charge
-            row_data["energy_dispatched"] = battery.dispatch(row_data["price"])
-            row_data["end_state_of_charge"] = battery.current_state_of_charge
-            row_data["profit"] = row_data["price"] * row_data["energy_dispatched"]
-            output_list = [row_data[column] for column in output_columns]
-            data.loc[data.shape[0]] = output_list
-            output_writer.writerow(output_list)
-        output_file.close()
+        data = clean_dayahead_prices(dayahead_rows)
+
+        # The battery is dispatched one period at a time because each dispatch
+        # depends on the state of charge left by the previous one.
+        start_states_of_charge = []
+        energy_dispatched = []
+        end_states_of_charge = []
+        for price in data["price"]:
+            start_states_of_charge.append(battery.current_state_of_charge)
+            energy_dispatched.append(battery.dispatch(price))
+            end_states_of_charge.append(battery.current_state_of_charge)
+        data["start_state_of_charge"] = start_states_of_charge
+        data["energy_dispatched"] = energy_dispatched
+        data["end_state_of_charge"] = end_states_of_charge
+        data["profit"] = data["price"] * data["energy_dispatched"]
+
+        data[output_columns].to_csv(output_folder / f"{chunk_label}.csv", index=False)
 
 if __name__ == "__main__":
     main()
