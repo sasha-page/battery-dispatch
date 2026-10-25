@@ -511,6 +511,18 @@ class TestDayaheadSql:
                 dayahead_sql("3659eb54-cc15-46e2-b397-480628caa0bf", d(2024, 12, 17), end_date)
 
         @pytest.mark.parametrize(
+            "start_date, end_date",
+            [
+                pytest.param("2026-05-06", "2026-05-20", id="strings"),
+                pytest.param(dt(2026, 5, 6, 0, 0), dt(2026, 5, 20, 0, 0), id="datetimes"),
+                pytest.param(0.8, 41.5, id="floats"),
+            ],
+        )
+        def test_raises_type_error_when_both_dates_not_dates(self, start_date, end_date):
+            with pytest.raises(TypeError):
+                dayahead_sql("972b436d-8ef3-489e-b313-bf4fbd9deff9", start_date, end_date)
+
+        @pytest.mark.parametrize(
             "resource_id",
             [
                 pytest.param("", id="empty"),
