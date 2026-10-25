@@ -35,6 +35,19 @@ def month_ranges(start_date: date, end_date: date) -> list[dict[str, str | date]
     return result
 
 
+def dayahead_sql(resource_id: str, start_date: date, end_date: date) -> str:
+    """Build the SQL query for day-ahead prices from start_date to end_date.
+
+    The query selects the "Date", "Delivery Period" and "Price" columns from
+    the resource resource_id, for dates from start_date to end_date
+    inclusive.
+    """
+    return (
+        f'SELECT "Date", "Delivery Period", "Price" FROM "{resource_id}" '
+        f"WHERE \"Date\" >= '{start_date:%Y-%m-%d}' AND \"Date\" <= '{end_date:%Y-%m-%d}'"
+    )
+
+
 def clean_dayahead_prices(rows: list[dict[str, str]]) -> pd.DataFrame:
     """Convert raw day-ahead price rows into typed values.
 
