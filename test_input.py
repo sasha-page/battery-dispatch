@@ -485,3 +485,14 @@ class TestDayaheadSql:
         def test_raises_value_error_when_start_after_end(self):
             with pytest.raises(ValueError):
                 dayahead_sql("d22d64ee-aa72-45be-9a3a-da86b9a105db", d(2025, 11, 9), d(2025, 11, 8))
+
+        @pytest.mark.parametrize(
+            "start_date",
+            [
+                pytest.param("2025-04-02", id="string"),
+                pytest.param(dt(2025, 4, 2, 0, 0), id="datetime"),
+            ],
+        )
+        def test_raises_type_error_when_start_date_not_a_date(self, start_date):
+            with pytest.raises(TypeError):
+                dayahead_sql("28ed83ab-ec01-4b43-b8b5-2940f481b63c", start_date, d(2025, 4, 10))
