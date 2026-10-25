@@ -507,3 +507,17 @@ class TestDayaheadSql:
         def test_raises_type_error_when_end_date_not_a_date(self, end_date):
             with pytest.raises(TypeError):
                 dayahead_sql("3659eb54-cc15-46e2-b397-480628caa0bf", d(2024, 12, 17), end_date)
+
+        @pytest.mark.parametrize(
+            "resource_id",
+            [
+                pytest.param("", id="empty"),
+                pytest.param("not-a-uuid", id="not_hex"),
+                pytest.param("35cddc46-14de-4f85-b05e-06e70389fd1", id="one_character_short"),
+                pytest.param("972B436D-8EF3-489E-B313-BF4FBD9DEFF9", id="uppercase"),
+                pytest.param("{b70e944d-7953-434e-8262-e963921f23ec}", id="braces"),
+            ],
+        )
+        def test_raises_value_error_when_resource_id_not_a_uuid(self, resource_id: str):
+            with pytest.raises(ValueError):
+                dayahead_sql(resource_id, d(2026, 2, 3), d(2026, 2, 25))
